@@ -81,7 +81,8 @@ async function creerSalle() {
     const s = await net.get(net.r(`salles/${code}/etat`));
     if (!s.exists()) break;
   }
-  await net.set(net.r(`salles/${code}`), {
+  // Écriture multi-chemins : les règles n'autorisent que les sous-nœuds (creee, etat…)
+  await net.update(net.r(`salles/${code}`), {
     creee: net.serverTimestamp(),
     etat: { phase: "accueil", scene: -1, fin: 0 },
   });
