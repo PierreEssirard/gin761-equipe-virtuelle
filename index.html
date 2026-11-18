@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Chef d'équipe virtuelle : survivrez-vous ?</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛰️</text></svg>" />
+  <link rel="stylesheet" href="css/style.css" />
+  <script src="js/qrcode.js"></script>
+</head>
+<body class="hote">
+  <div class="app">
+    <header class="barre">
+      <div class="marque">GIN761 · <b>Équipes virtuelles</b></div>
+      <div class="jauges" id="jauges"></div>
+      <div class="salle-info">
+        <span class="pastille cache" id="pastille-salle">Salle <b id="code-salle">—</b></span>
+        <span class="pastille cache" id="pastille-joueurs">👥 <b id="nb-joueurs">0</b></span>
+      </div>
+    </header>
+
+    <main class="scene" id="scene"></main>
+
+    <footer class="pied">
+      <div class="touches"><kbd>Espace</kbd> ou <kbd>→</kbd> pour avancer · <kbd>F</kbd> plein écran</div>
+      <button class="btn" id="btn-suivant">Suivant ▶</button>
+    </footer>
+  </div>
+  <script type="module" src="js/hote.js"></script>
+</body>
+</html>

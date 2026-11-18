@@ -1,0 +1,27 @@
+{
+  "rules": {
+    "salles": {
+      "$code": {
+        ".read": true,
+        ".validate": "$code.matches(/^[0-9]{4}$/)",
+        "creee": { ".write": true },
+        "etat": { ".write": true },
+        "joueurs": {
+          "$pid": {
+            ".write": true,
+            ".validate": "newData.child('nom').isString() && newData.child('nom').val().length <= 24",
+            "score": { ".validate": "newData.isNumber()" }
+          }
+        },
+        "votes": {
+          "$scene": {
+            "$pid": {
+              ".write": true,
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 2"
+            }
+          }
+        }
+      }
+    }
+  }
+}
