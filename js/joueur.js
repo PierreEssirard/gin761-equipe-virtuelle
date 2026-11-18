@@ -1,8 +1,8 @@
 /* =========================================================
    PAGE JOUEUR — ouverte sur les téléphones via le QR code
    ========================================================= */
-import { SCENES, LETTRES, POINTS } from "./scenarios.js?v=6";
-import { connecter, configPrete } from "./reseau.js?v=6";
+import { SCENES, LETTRES, POINTS } from "./scenarios.js?v=8";
+import { connecter, configPrete } from "./reseau.js?v=8";
 
 const $ = (s) => document.querySelector(s);
 const ecran = $("#ecran");
@@ -32,7 +32,7 @@ function ecranCode(erreur = "") {
     <button class="btn" id="ok">Continuer</button>`, "code");
   const go = () => {
     const c = $("#code").value.trim();
-    if (/^\d{4}$/.test(c)) location.search = "?salle=" + c + "&v=6";
+    if (/^\d{4}$/.test(c)) location.search = "?salle=" + c + "&v=8";
   };
   $("#ok").onclick = go;
   $("#code").onkeydown = (e) => { if (e.key === "Enter") go(); };
@@ -101,7 +101,7 @@ function afficher(majScore) {
 }
 
 function attente() {
-  rendre(`<div class="j-grand-emoji">✅</div>
+  rendre(`<svg class="j-check" viewBox="0 0 52 52"><circle cx="26" cy="26" r="24"/><path d="M15 27l7 7 15-16"/></svg>
     <div class="j-titre j-centre">C'est parti, ${esc(moi.nom)} !</div>
     <p class="j-texte j-centre">Tu es dans la partie. Regarde l'écran : le vote commence bientôt.</p>`, `${etat.phase}-${etat.scene}`);
 }
@@ -159,6 +159,13 @@ function resultat(idx, choixClasse) {
     ${montrer ? `<div class="j-points ${q}">+${pts ?? POINTS[q]}</div><p class="j-texte j-centre">${message}</p>` : ""}
     <div class="j-score"><span>Ton score</span><b>${moi.score || 0} pts</b></div>
     <p class="j-note">Regarde l'écran pour la suite 👀</p>`, `${etat.phase}-${idx}`);
+  const pe = document.querySelector(".j-points");
+  if (pe) {
+    const cible = pts ?? POINTS[q];
+    const t0 = performance.now();
+    const pas = (t) => { const k = Math.min(1, (t - t0) / 900); pe.textContent = "+" + Math.round(cible * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(pas); };
+    requestAnimationFrame(pas);
+  }
 }
 
 async function fin() {

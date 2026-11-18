@@ -1,9 +1,9 @@
 /* =========================================================
    ÉCRAN HÔTE — à projeter devant la classe
    ========================================================= */
-import { JAUGES, DEPART, POINTS, LETTRES, INTRO, SCENES, RECAP, verdict } from "./scenarios.js?v=6";
-import { connecter, configPrete } from "./reseau.js?v=6";
-import { DUREE_VOTE } from "./config.js?v=6";
+import { JAUGES, DEPART, POINTS, LETTRES, INTRO, SCENES, RECAP, verdict } from "./scenarios.js?v=8";
+import { connecter, configPrete } from "./reseau.js?v=8";
+import { DUREE_VOTE } from "./config.js?v=8";
 
 const params = new URLSearchParams(location.search);
 const DUREE = Number(params.get("duree")) || DUREE_VOTE;
@@ -52,12 +52,23 @@ function construireJauges() {
   ).join("");
   majJauges();
 }
+function compter(el, de, a, ms = 1200) {
+  if (de === a) { el.textContent = a; return; }
+  const t0 = performance.now();
+  const pas = (t) => {
+    const k = Math.min(1, (t - t0) / ms);
+    const e = 1 - Math.pow(1 - k, 3);
+    el.textContent = Math.round(de + (a - de) * e);
+    if (k < 1) requestAnimationFrame(pas);
+  };
+  requestAnimationFrame(pas);
+}
 function couleur(v) { return v >= 60 ? "var(--bon)" : v >= 30 ? "var(--moyen)" : "var(--mal)"; }
 function majJauges(avant = null) {
   JAUGES.forEach((j) => {
     const el = $(`#j-${j.id}`);
     const v = S.jauges[j.id];
-    el.querySelector(".val").textContent = v;
+    compter(el.querySelector(".val"), avant ? avant[j.id] : Number(el.querySelector(".val").textContent) || v, v);
     const r = el.querySelector(".rempli");
     r.style.width = v + "%";
     r.style.background = couleur(v);
@@ -103,7 +114,7 @@ function publier(extra = {}) {
   net.set(net.r(`salles/${S.code}/etat`), { phase: S.phase, scene: S.idx, fin: finVote || 0, ...extra });
 }
 function urlJoueur() {
-  return new URL(`jouer.html?salle=${S.code}&v=6`, location.href).href;
+  return new URL(`jouer.html?salle=${S.code}&v=8`, location.href).href;
 }
 
 /* ---------- Écrans ---------- */
@@ -149,7 +160,7 @@ function ecranAccueil() {
   rendre(`<div class="accueil">
     <div>
       <div class="surtitre">Jeu interactif · Line Dubé (2009)</div>
-      <h1 class="gros-titre">Chef d'équipe virtuelle :<br><em>survivrez-vous ?</em></h1>
+      <h1 class="gros-titre">Chef d'équipe virtuelle&nbsp;:<br><em>survivrez-vous&nbsp;?</em></h1>
       <p class="sous">${enLigne
         ? "Scannez le QR code avec votre téléphone, entrez votre prénom et attendez le début de la partie."
         : "Mode sans téléphones : à chaque étape, la classe vote à main levée."}</p>
@@ -191,8 +202,8 @@ function ecranIntro() {
   rendre(`<div class="intro">
     <div class="surtitre">${INTRO.titre}</div>
     <p class="texte-intro">${INTRO.texte}</p>
-    <div class="villes">${INTRO.villes.map((v) => `<div class="ville"><b>📍 ${v.nom}</b><span>${v.detail}</span></div>`).join("")}</div>
-    <div class="regle">🎯 ${INTRO.regle}${S.enLigne ? " <b>Points individuels :</b> chaque choix rapporte 0, 500 ou 1000 points selon ce que recommande le texte." : ""}</div>
+    <div class="villes">${INTRO.villes.map((v) => `<div class="ville"><b>${v.nom}</b><span>${v.detail}</span></div>`).join("")}</div>
+    <div class="regle">${INTRO.regle}${S.enLigne ? " <b>Points individuels :</b> chaque choix rapporte 0, 500 ou 1000 points selon ce que recommande le texte." : ""}</div>
   </div>`);
   publier();
   sauver();
@@ -373,7 +384,7 @@ function ecranDecryptage() {
   rendre(`<div class="etape">Étape ${S.idx + 1} / ${SCENES.length} · ${sc.titre}</div>
     <div class="decryptage">
       <div class="livre">
-        <span class="tag-paradoxe">📖 ${dc.paradoxe}</span>
+        <span class="tag-paradoxe">${dc.paradoxe}</span>
         <h2>${dc.titre}</h2>
         <p class="retenir">💡 ${dc.retenir}</p>
       </div>
@@ -384,7 +395,7 @@ function ecranDecryptage() {
             <span>${c.court}</span><span class="badge-q ${c.qualite}" style="margin-left:auto;padding:.2em .6em;border-radius:99px;font-weight:700;font-size:.8em;white-space:nowrap">${POINTS[c.qualite]} pts</span></div>`).join("")}
           <p style="margin-top:.7em;font-weight:700;color:${bon ? "var(--bon)" : "var(--moyen)"}">${bon ? "✅ La classe a fait le meilleur choix !" : `La classe avait choisi ${LETTRES[d.choix]}.`}</p>
         </div>
-        ${S.enLigne && Object.keys(joueurs).length ? `<div class="encart"><h4>🏅 Classement</h4><ol class="classement">
+        ${S.enLigne && Object.keys(joueurs).length ? `<div class="encart"><h4>Classement</h4><ol class="classement">
           ${top(5).map((j) => `<li><span>${esc(j.nom)}</span><b>${j.score || 0}</b></li>`).join("")}</ol></div>` : ""}
       </div>
     </div>`);
@@ -408,7 +419,7 @@ function ecranFin() {
       <div class="historique">${S.historique.map((h, i) => `<span title="${esc(SCENES[i].titre)}" style="background:var(--${h.qualite === "top" ? "bon" : h.qualite === "moyen" ? "moyen" : "mal"})">${LETTRES[h.choix]}</span>`).join("")}</div>
     </div>
     <div class="podium">
-      ${podium.length ? `<div class="surtitre">🏆 Meilleurs chefs d'équipe virtuelle</div>
+      ${podium.length ? `<div class="surtitre">Meilleurs chefs d'équipe virtuelle</div>
         ${podium.map((j, i) => `<div class="ligne" style="animation-delay:${0.3 + (podium.length - i) * 0.35}s"><span class="rang">${medailles[i]}</span><span>${esc(j.nom)}</span><span class="pts">${j.score || 0}</span></div>`).join("")}`
       : `<div class="surtitre">À retenir</div><div class="encart" style="font-size:1.2em;line-height:1.5">Les paradoxes ne se « résolvent » pas : on les gère. Le bon chef d'équipe virtuelle combine les deux côtés au lieu d'en choisir un.</div>`}
     </div>
