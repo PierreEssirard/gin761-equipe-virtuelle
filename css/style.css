@@ -11,6 +11,7 @@
   --a: #ff6b5b;
   --b: #22c3b4;
   --c: #ffb627;
+  --d: #4f8cff;
   --bon: #3ddc84;
   --moyen: #ffb627;
   --mal: #ff5470;
@@ -131,22 +132,24 @@ button { font: inherit; color: inherit; cursor: pointer; border: 0; background: 
 .minuteur .nb { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--titre); font-weight: 800; font-size: 2.2em; }
 .minuteur.urgent .avance { stroke: var(--mal); }
 
-.options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.3em; margin-top: 2.2em; align-items: stretch; }
+.options { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.1em 1.3em; margin-top: 1.6em; align-items: stretch; }
 .option {
   position: relative; text-align: left; border-radius: 1.1em; padding: 1.3em 1.4em 1.4em;
-  background: var(--carte); border: 2px solid transparent; display: flex; flex-direction: column; gap: 0.7em; min-height: 13em;
+  background: var(--carte); border: 2px solid transparent; display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 0.6em 1em; min-height: 6.5em;
   overflow: hidden; transition: transform 0.3s, opacity 0.4s, border-color 0.3s;
 }
 .option .lettre { width: 2.2em; height: 2.2em; border-radius: 0.6em; display: grid; place-items: center; font-family: var(--titre); font-weight: 800; font-size: 1.3em; color: #0e1430; flex: none; }
-.option .txt { font-size: 1.6em; line-height: 1.38; font-weight: 500; position: relative; z-index: 1; }
+.option .txt { font-size: 1.45em; line-height: 1.38; font-weight: 500; position: relative; z-index: 1; }
 .option[data-i="0"] .lettre { background: var(--a); }
 .option[data-i="1"] .lettre { background: var(--b); }
 .option[data-i="2"] .lettre { background: var(--c); }
+.option[data-i="3"] .lettre { background: var(--d); }
+.option[data-i="3"] { --col: var(--d); }
 .option[data-i="0"] { --col: var(--a); }
 .option[data-i="1"] { --col: var(--b); }
 .option[data-i="2"] { --col: var(--c); }
 .option .barre-vote { position: absolute; left: 0; bottom: 0; height: 0.55em; background: var(--col); width: 0; transition: width 1s ease; }
-.option .pct { font-family: var(--titre); font-weight: 800; font-size: 1.6em; color: var(--col); margin-top: auto; position: relative; z-index: 1; }
+.option .pct { grid-column: 1 / -1; font-family: var(--titre); font-weight: 800; font-size: 1.6em; color: var(--col); position: relative; z-index: 1; }
 .option.clic { cursor: pointer; }
 .option.clic:hover { border-color: var(--col); transform: translateY(-3px); }
 .option.gagnant { border-color: var(--col); transform: scale(1.03); box-shadow: 0 0 0 4px color-mix(in srgb, var(--col) 30%, transparent), 0 20px 50px rgba(0, 0, 0, 0.35); }
@@ -169,8 +172,8 @@ button { font: inherit; color: inherit; cursor: pointer; border: 0; background: 
 .effet { padding: 0.3em 0.8em; border-radius: 99px; font-weight: 700; font-size: 1em; }
 .effet.plus { background: rgba(61, 220, 132, 0.18); color: var(--bon); }
 .effet.moins { background: rgba(255, 84, 112, 0.18); color: #ff8aa0; }
-.mini-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1em; }
-.mini-options .option { padding: 0.9em 1.1em; gap: 0.4em; min-height: 0; }
+.mini-options { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1em; }
+.mini-options .option { padding: 0.9em 1.1em; gap: 0.4em 0.7em; min-height: 0; }
 .mini-options .option .txt { font-size: 1.15em; }
 .mini-options .option .lettre { font-size: 1em; }
 .mini-options .option .pct { font-size: 1.3em; }
@@ -250,6 +253,7 @@ button { font: inherit; color: inherit; cursor: pointer; border: 0; background: 
 .j-btn[data-i="0"] { --col: var(--a); }
 .j-btn[data-i="1"] { --col: var(--b); }
 .j-btn[data-i="2"] { --col: var(--c); }
+.j-btn[data-i="3"] { --col: var(--d); }
 .j-btn .lettre { background: var(--col); }
 .j-btn:active { transform: scale(0.98); }
 .j-btn.choisi { border-color: var(--col); background: color-mix(in srgb, var(--col) 18%, var(--carte)); }
@@ -266,3 +270,6 @@ button { font: inherit; color: inherit; cursor: pointer; border: 0; background: 
 .j-score b { font-family: var(--titre); }
 .erreur { color: #ff8aa0; font-weight: 600; text-align: center; }
 .champ { -webkit-user-select: text; user-select: text; -webkit-appearance: none; appearance: none; }
+
+.livre .retenir { font-size: 1.7em; line-height: 1.4; color: var(--texte); font-weight: 600; margin-top: 0.4em; }
+.decryptage { grid-template-columns: 1.3fr 1fr; }

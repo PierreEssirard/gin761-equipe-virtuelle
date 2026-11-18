@@ -1,9 +1,9 @@
 /* =========================================================
    ÉCRAN HÔTE — à projeter devant la classe
    ========================================================= */
-import { JAUGES, DEPART, POINTS, LETTRES, INTRO, SCENES, RECAP, verdict } from "./scenarios.js?v=5";
-import { connecter, configPrete } from "./reseau.js?v=5";
-import { DUREE_VOTE } from "./config.js?v=5";
+import { JAUGES, DEPART, POINTS, LETTRES, INTRO, SCENES, RECAP, verdict } from "./scenarios.js?v=6";
+import { connecter, configPrete } from "./reseau.js?v=6";
+import { DUREE_VOTE } from "./config.js?v=6";
 
 const params = new URLSearchParams(location.search);
 const DUREE = Number(params.get("duree")) || DUREE_VOTE;
@@ -103,7 +103,7 @@ function publier(extra = {}) {
   net.set(net.r(`salles/${S.code}/etat`), { phase: S.phase, scene: S.idx, fin: finVote || 0, ...extra });
 }
 function urlJoueur() {
-  return new URL(`jouer.html?salle=${S.code}&v=5`, location.href).href;
+  return new URL(`jouer.html?salle=${S.code}&v=6`, location.href).href;
 }
 
 /* ---------- Écrans ---------- */
@@ -225,7 +225,7 @@ function ecranVote(idx) {
       </div>`).join("")}</div>
     <div class="statut-vote" id="statut">${enLigne
       ? `<span>📱 Votez sur votre téléphone !</span><span><b id="nb-votes">0</b> / <b id="nb-tot">${Object.keys(joueurs).length}</b> ont voté</span>`
-      : `<span>✋ Votez à main levée, puis cliquez sur l'option majoritaire (ou touches <b>1</b>, <b>2</b>, <b>3</b>).</span>`}</div>`);
+      : `<span>✋ Votez à main levée, puis cliquez sur l'option majoritaire (ou touches <b>1</b> à <b>4</b>).</span>`}</div>`);
 
   if (!enLigne) {
     document.querySelectorAll(".option").forEach((o) => (o.onclick = () => reveler(+o.dataset.i)));
@@ -271,8 +271,8 @@ function majStatutVote() {
 function reveler(force) {
   if (S.phase !== "vote" || (enRevelation && force === undefined)) return;
   const sc = SCENES[S.idx];
-  const comptes = [0, 0, 0];
-  Object.values(votes).forEach((v) => { if (v >= 0 && v <= 2) comptes[v]++; });
+  const comptes = [0, 0, 0, 0];
+  Object.values(votes).forEach((v) => { if (v >= 0 && v <= 3) comptes[v]++; });
   const total = comptes.reduce((a, b) => a + b, 0);
   let choix = force;
   let tirage = false;
@@ -289,7 +289,7 @@ function reveler(force) {
       return;
     }
     const max = Math.max(...comptes);
-    const ex = [0, 1, 2].filter((i) => comptes[i] === max);
+    const ex = [0, 1, 2, 3].filter((i) => comptes[i] === max);
     choix = ex[Math.floor(Math.random() * ex.length)];
     tirage = ex.length > 1;
   }
@@ -346,7 +346,7 @@ function ecranResultat(anime) {
   rendre(`${enteteScene(S.idx, false)}
     <div class="resultat">
       ${miniOptions(sc, d, false)}
-      <div class="consequence" style="--col: var(--${"abc"[d.choix]})">
+      <div class="consequence" style="--col: var(--${"abcd"[d.choix]})">
         <div class="lettre">${LETTRES[d.choix]}</div>
         <div><h3>La classe a choisi « ${opt.court} »${d.tirage ? ` <span class="egalite">· égalité, tirage au sort !</span>` : ""}</h3>
         <p>${opt.consequence}</p><div class="effets">${effets}</div></div>
@@ -375,14 +375,12 @@ function ecranDecryptage() {
       <div class="livre">
         <span class="tag-paradoxe">📖 ${dc.paradoxe}</span>
         <h2>${dc.titre}</h2>
-        <p>${dc.explication}</p>
-        <h4>Stratégies de survie</h4>
-        <ul>${dc.strategies.map((s) => `<li>${s}</li>`).join("")}</ul>
+        <p class="retenir">💡 ${dc.retenir}</p>
       </div>
       <div class="cote">
         <div class="encart"><h4>Selon le texte</h4>
           ${sc.choix.map((c, i) => `<div class="meilleur" style="margin-bottom:.55em;${i === iTop ? "" : "opacity:.6"}">
-            <span class="lettre" style="background:var(--${"abc"[i]})">${LETTRES[i]}</span>
+            <span class="lettre" style="background:var(--${"abcd"[i]})">${LETTRES[i]}</span>
             <span>${c.court}</span><span class="badge-q ${c.qualite}" style="margin-left:auto;padding:.2em .6em;border-radius:99px;font-weight:700;font-size:.8em;white-space:nowrap">${POINTS[c.qualite]} pts</span></div>`).join("")}
           <p style="margin-top:.7em;font-weight:700;color:${bon ? "var(--bon)" : "var(--moyen)"}">${bon ? "✅ La classe a fait le meilleur choix !" : `La classe avait choisi ${LETTRES[d.choix]}.`}</p>
         </div>
@@ -437,7 +435,7 @@ document.addEventListener("keydown", (e) => {
   if ([" ", "Enter", "ArrowRight", "PageDown"].includes(e.key)) { e.preventDefault(); suivant(); }
   else if (e.key === "f" || e.key === "F") {
     if (!document.fullscreenElement) document.documentElement.requestFullscreen?.(); else document.exitFullscreen?.();
-  } else if (["1", "2", "3"].includes(e.key) && S.phase === "vote" && (!S.enLigne || attenteMain)) reveler(+e.key - 1);
+  } else if (["1", "2", "3", "4"].includes(e.key) && S.phase === "vote" && (!S.enLigne || attenteMain)) reveler(+e.key - 1);
 });
 
 /* ---------- Démarrage ---------- */

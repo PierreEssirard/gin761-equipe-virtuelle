@@ -17,7 +17,7 @@
           "$scene": {
             "$pid": {
               ".write": true,
-              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 2"
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 3"
             }
           }
         }
