@@ -1,8 +1,8 @@
 /* =========================================================
    PAGE JOUEUR — ouverte sur les téléphones via le QR code
    ========================================================= */
-import { SCENES, LETTRES, POINTS } from "./scenarios.js";
-import { connecter, configPrete } from "./reseau.js";
+import { SCENES, LETTRES, POINTS } from "./scenarios.js?v=5";
+import { connecter, configPrete } from "./reseau.js?v=5";
 
 const $ = (s) => document.querySelector(s);
 const ecran = $("#ecran");
@@ -32,7 +32,7 @@ function ecranCode(erreur = "") {
     <button class="btn" id="ok">Continuer</button>`, "code");
   const go = () => {
     const c = $("#code").value.trim();
-    if (/^\d{4}$/.test(c)) location.search = "?salle=" + c;
+    if (/^\d{4}$/.test(c)) location.search = "?salle=" + c + "&v=5";
   };
   $("#ok").onclick = go;
   $("#code").onkeydown = (e) => { if (e.key === "Enter") go(); };
@@ -43,7 +43,7 @@ function ecranCode(erreur = "") {
 function ecranNom(erreur = "") {
   rendre(`<div class="j-grand-emoji">👋</div>
     <div class="j-titre j-centre">Salle ${code}</div>
-    <input class="champ" id="nom" maxlength="20" placeholder="Ton prénom" autocomplete="given-name" />
+    <input class="champ" id="nom" type="text" maxlength="20" autocapitalize="words" autocorrect="off" spellcheck="false" enterkeyhint="go" placeholder="Ton prénom" autocomplete="given-name" />
     ${erreur ? `<p class="erreur">${erreur}</p>` : ""}
     <button class="btn" id="ok">Entrer dans la partie</button>`, "nom");
   const go = async () => {

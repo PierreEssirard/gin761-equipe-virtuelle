@@ -265,3 +265,4 @@ button { font: inherit; color: inherit; cursor: pointer; border: 0; background: 
 .j-score { display: flex; justify-content: space-between; background: var(--carte2); padding: 12px 16px; border-radius: 14px; font-weight: 600; }
 .j-score b { font-family: var(--titre); }
 .erreur { color: #ff8aa0; font-weight: 600; text-align: center; }
+.champ { -webkit-user-select: text; user-select: text; -webkit-appearance: none; appearance: none; }

@@ -1,5 +1,5 @@
 /* Connexion à Firebase Realtime Database (chargée depuis le CDN de Google). */
-import { firebaseConfig } from "./config.js";
+import { firebaseConfig } from "./config.js?v=5";
 
 const V = "10.14.1";
 
