@@ -35,7 +35,7 @@ function ecranCode(erreur = "") {
     if (/^\d{4}$/.test(c)) location.search = "?salle=" + c;
   };
   $("#ok").onclick = go;
-  $("#code").onkeydown = (e) => e.key === "Enter" && go();
+  $("#code").onkeydown = (e) => { if (e.key === "Enter") go(); };
   $("#code").focus();
 }
 
@@ -65,7 +65,7 @@ function ecranNom(erreur = "") {
     }
   };
   $("#ok").onclick = go;
-  $("#nom").onkeydown = (e) => e.key === "Enter" && go();
+  $("#nom").onkeydown = (e) => { if (e.key === "Enter") go(); };
   $("#nom").focus();
 }
 
