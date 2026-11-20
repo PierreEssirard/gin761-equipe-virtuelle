@@ -1,8 +1,8 @@
 /* =========================================================
    PAGE JOUEUR — ouverte sur les téléphones via le QR code
    ========================================================= */
-import { SCENES, LETTRES, POINTS } from "./scenarios.js?v=8";
-import { connecter, configPrete } from "./reseau.js?v=8";
+import { SCENES, LETTRES, POINTS } from "./scenarios.js?v=9";
+import { connecter, configPrete } from "./reseau.js?v=9";
 
 const $ = (s) => document.querySelector(s);
 const ecran = $("#ecran");
@@ -32,7 +32,7 @@ function ecranCode(erreur = "") {
     <button class="btn" id="ok">Continuer</button>`, "code");
   const go = () => {
     const c = $("#code").value.trim();
-    if (/^\d{4}$/.test(c)) location.search = "?salle=" + c + "&v=8";
+    if (/^\d{4}$/.test(c)) location.search = "?salle=" + c + "&v=9";
   };
   $("#ok").onclick = go;
   $("#code").onkeydown = (e) => { if (e.key === "Enter") go(); };
@@ -109,7 +109,7 @@ function attente() {
 function vote(idx) {
   const sc = SCENES[idx];
   const deja = mesVotes[idx];
-  rendre(`<div class="j-scene-info">Étape ${idx + 1} / ${SCENES.length} · ${sc.titre}</div>
+  rendre(`<div class="j-scene-info">Question ${idx + 1} / ${SCENES.length} · ${sc.titre}</div>
     <div class="j-question">${sc.situation}</div>
     <div class="j-barre-temps"><div id="temps" style="width:100%"></div></div>
     <div class="j-choix ${deja !== undefined ? "a-vote" : ""}" id="choix">
@@ -153,7 +153,7 @@ function resultat(idx, choixClasse) {
     : q === "moyen" ? "Pas mal… mais il y avait mieux."
     : "Aïe, le texte n'est pas d'accord !";
   const montrer = etat.phase === "decryptage" || pts !== null;
-  rendre(`<div class="j-scene-info">Étape ${idx + 1} / ${SCENES.length}</div>
+  rendre(`<div class="j-scene-info">Question ${idx + 1} / ${SCENES.length}</div>
     <div class="j-carte">La classe a choisi <b>${LETTRES[choixClasse]} · ${sc.choix[choixClasse].court}</b><br>
     Ton choix : <b>${monChoix >= 0 ? `${LETTRES[monChoix]} · ${sc.choix[monChoix].court}` : "aucun"}</b></div>
     ${montrer ? `<div class="j-points ${q}">+${pts ?? POINTS[q]}</div><p class="j-texte j-centre">${message}</p>` : ""}

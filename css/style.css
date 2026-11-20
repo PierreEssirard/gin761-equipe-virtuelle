@@ -231,6 +231,12 @@ button { font: inherit; color: inherit; cursor: pointer; border: 0; background: 
 .alerte-crise { background: rgba(255, 69, 58, 0.12); border: 1px solid rgba(255, 69, 58, 0.5); color: #ffb4ae; padding: 0.85em 1.2em; border-radius: 16px; font-weight: 600; font-size: 1.1em; animation: pop 0.6s var(--ease) 1.2s both; }
 .egalite { color: var(--moyen); font-weight: 600; }
 
+/* Résultat fusionné */
+.duo { display: grid; grid-template-columns: 1.15fr 1fr; gap: 1em; align-items: stretch; }
+.duo .livre { padding: 1.5em 1.7em; animation-delay: 0.65s; }
+.duo .retenir { font-size: 1.45em; margin-top: 0.6em; color: var(--texte); }
+.mini-options .badge-q { opacity: 0; animation: fondu 0.5s 1.3s forwards; }
+
 /* Décryptage */
 .decryptage { display: grid; grid-template-columns: 1.3fr 1fr; gap: 1.6em; margin-top: 1.3em; align-items: start; }
 .livre { background: var(--carte); border: 1px solid var(--ligne); border-radius: var(--rayon); padding: 2em 2.2em; animation: entree 0.7s var(--ease) both; }
@@ -347,3 +353,5 @@ button { font: inherit; color: inherit; cursor: pointer; border: 0; background: 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
+.mini-options .option { padding-top: 2.4em; }
+.mini-options .badge-q { top: 0.75em; right: auto; left: 1.1em; }

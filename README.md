@@ -28,8 +28,8 @@ Le projet Firebase `gin761-jeu` est déjà configuré (Realtime Database en us-c
 
 Le mode **Jouer sans téléphones** fonctionne même sans Firebase.
 
-## Déroulement (environ 10 à 12 minutes)
+## Déroulement (environ 6 à 8 minutes)
 
-Introduction, puis 7 dilemmes. Chaque dilemme a un écran de vote, un écran de conséquences (jauges) et un écran « Ce que dit le texte » (paradoxe et stratégies de survie). Le jeu se termine par un verdict et un podium.
+Introduction, puis 5 questions (une par paradoxe). Chaque question a un écran de vote et un écran de résultat (conséquence, jauges et phrase à retenir). Le jeu se termine par un verdict et un podium.
 
 Le contenu est modifiable dans `js/scenarios.js`.

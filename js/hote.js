@@ -1,9 +1,9 @@
 /* =========================================================
    ÉCRAN HÔTE — à projeter devant la classe
    ========================================================= */
-import { JAUGES, DEPART, POINTS, LETTRES, INTRO, SCENES, RECAP, verdict } from "./scenarios.js?v=8";
-import { connecter, configPrete } from "./reseau.js?v=8";
-import { DUREE_VOTE } from "./config.js?v=8";
+import { JAUGES, DEPART, POINTS, LETTRES, INTRO, SCENES, verdict } from "./scenarios.js?v=9";
+import { connecter, configPrete } from "./reseau.js?v=9";
+import { DUREE_VOTE } from "./config.js?v=9";
 
 const params = new URLSearchParams(location.search);
 const DUREE = Number(params.get("duree")) || DUREE_VOTE;
@@ -114,7 +114,7 @@ function publier(extra = {}) {
   net.set(net.r(`salles/${S.code}/etat`), { phase: S.phase, scene: S.idx, fin: finVote || 0, ...extra });
 }
 function urlJoueur() {
-  return new URL(`jouer.html?salle=${S.code}&v=8`, location.href).href;
+  return new URL(`jouer.html?salle=${S.code}&v=9`, location.href).href;
 }
 
 /* ---------- Écrans ---------- */
@@ -162,7 +162,7 @@ function ecranAccueil() {
       <div class="surtitre">Jeu interactif · Line Dubé (2009)</div>
       <h1 class="gros-titre">Chef d'équipe virtuelle&nbsp;:<br><em>survivrez-vous&nbsp;?</em></h1>
       <p class="sous">${enLigne
-        ? "Scannez le QR code avec votre téléphone, entrez votre prénom et attendez le début de la partie."
+        ? "Scannez le QR code et entrez votre prénom."
         : "Mode sans téléphones : à chaque étape, la classe vote à main levée."}</p>
       ${enLigne ? `<div class="actions"><span class="compteur-gros"><span id="nb-acc">0</span> joueur(s) connecté(s)</span></div>
       <div class="joueurs-liste" id="liste-joueurs"></div>` : ""}
@@ -198,12 +198,12 @@ function majListeJoueurs() {
 
 function ecranIntro() {
   S.phase = "intro";
-  btnSuivant("Première étape ▶");
+  btnSuivant("Première question ▶");
   rendre(`<div class="intro">
     <div class="surtitre">${INTRO.titre}</div>
     <p class="texte-intro">${INTRO.texte}</p>
     <div class="villes">${INTRO.villes.map((v) => `<div class="ville"><b>${v.nom}</b><span>${v.detail}</span></div>`).join("")}</div>
-    <div class="regle">${INTRO.regle}${S.enLigne ? " <b>Points individuels :</b> chaque choix rapporte 0, 500 ou 1000 points selon ce que recommande le texte." : ""}</div>
+    <div class="regle">${INTRO.regle}</div>
   </div>`);
   publier();
   sauver();
@@ -212,7 +212,7 @@ function ecranIntro() {
 function enteteScene(idx, avecMinuteur) {
   const sc = SCENES[idx];
   return `<div class="entete-scene"><div>
-      <div class="etape">Étape ${idx + 1} / ${SCENES.length}</div>
+      <div class="etape">Question ${idx + 1} / ${SCENES.length}</div>
       <h2 class="titre-scene">${sc.titre}</h2>
       <p class="situation">${sc.situation}</p></div>
     ${avecMinuteur ? `<div class="minuteur" id="minuteur"><svg viewBox="0 0 100 100"><circle class="fond-c" cx="50" cy="50" r="44"/>
@@ -349,20 +349,28 @@ function ecranResultat(anime) {
   const sc = SCENES[S.idx];
   const d = S.dernier;
   const opt = sc.choix[d.choix];
-  btnSuivant("Ce que dit le texte ▶");
+  const dc = sc.decryptage;
+  const derniere = S.idx === SCENES.length - 1;
+  btnSuivant(derniere ? "Verdict final ▶" : "Question suivante ▶");
   const effets = JAUGES.filter((j) => opt.effets[j.id])
-    .map((j) => { const v = opt.effets[j.id]; return `<span class="effet ${v > 0 ? "plus" : "moins"}">${j.icone} ${j.nom} ${v > 0 ? "+" : ""}${v}</span>`; })
+    .map((j) => { const v = opt.effets[j.id]; return `<span class="effet ${v > 0 ? "plus" : "moins"}">${j.icone} ${v > 0 ? "+" : ""}${v}</span>`; })
     .join("");
   const crises = JAUGES.filter((j) => S.jauges[j.id] <= 0 && d.avant[j.id] > 0);
-  rendre(`${enteteScene(S.idx, false)}
+  rendre(`<div class="etape">Question ${S.idx + 1} / ${SCENES.length}</div>
+    <h2 class="titre-scene">${sc.titre}</h2>
     <div class="resultat">
-      ${miniOptions(sc, d, false)}
-      <div class="consequence" style="--col: var(--${"abcd"[d.choix]})">
-        <div class="lettre">${LETTRES[d.choix]}</div>
-        <div><h3>La classe a choisi « ${opt.court} »${d.tirage ? ` <span class="egalite">· égalité, tirage au sort !</span>` : ""}</h3>
-        <p>${opt.consequence}</p><div class="effets">${effets}</div></div>
+      ${miniOptions(sc, d, true)}
+      <div class="duo">
+        <div class="consequence" style="--col: var(--${"abcd"[d.choix]})">
+          <div class="lettre">${LETTRES[d.choix]}</div>
+          <div><p>${opt.consequence}</p><div class="effets">${effets}</div></div>
+        </div>
+        <div class="livre">
+          <span class="tag-paradoxe">${dc.paradoxe} · ${dc.titre}</span>
+          <p class="retenir">${dc.retenir}</p>
+        </div>
       </div>
-      ${crises.map((j) => `<div class="alerte-crise">🚨 Crise ! La jauge ${j.icone} ${j.nom} est tombée à zéro.</div>`).join("")}
+      ${crises.map((j) => `<div class="alerte-crise">Crise : la jauge ${j.nom} est tombée à zéro.</div>`).join("")}
     </div>`);
   setTimeout(() => document.querySelectorAll(".barre-vote").forEach((b) => (b.style.width = b.dataset.w + "%")), 60);
   if (anime) majJauges(d.avant); else majJauges();
@@ -372,58 +380,25 @@ function top(n) {
   return Object.values(joueurs).sort((a, b) => (b.score || 0) - (a.score || 0)).slice(0, n);
 }
 
-function ecranDecryptage() {
-  S.phase = "decryptage";
-  const sc = SCENES[S.idx];
-  const d = S.dernier;
-  const dc = sc.decryptage;
-  const iTop = sc.choix.findIndex((c) => c.qualite === "top");
-  const derniere = S.idx === SCENES.length - 1;
-  btnSuivant(derniere ? "Verdict final 🏁" : "Étape suivante ▶");
-  const bon = d.choix === iTop;
-  rendre(`<div class="etape">Étape ${S.idx + 1} / ${SCENES.length} · ${sc.titre}</div>
-    <div class="decryptage">
-      <div class="livre">
-        <span class="tag-paradoxe">${dc.paradoxe}</span>
-        <h2>${dc.titre}</h2>
-        <p class="retenir">💡 ${dc.retenir}</p>
-      </div>
-      <div class="cote">
-        <div class="encart"><h4>Selon le texte</h4>
-          ${sc.choix.map((c, i) => `<div class="meilleur" style="margin-bottom:.55em;${i === iTop ? "" : "opacity:.6"}">
-            <span class="lettre" style="background:var(--${"abcd"[i]})">${LETTRES[i]}</span>
-            <span>${c.court}</span><span class="badge-q ${c.qualite}" style="margin-left:auto;padding:.2em .6em;border-radius:99px;font-weight:700;font-size:.8em;white-space:nowrap">${POINTS[c.qualite]} pts</span></div>`).join("")}
-          <p style="margin-top:.7em;font-weight:700;color:${bon ? "var(--bon)" : "var(--moyen)"}">${bon ? "✅ La classe a fait le meilleur choix !" : `La classe avait choisi ${LETTRES[d.choix]}.`}</p>
-        </div>
-        ${S.enLigne && Object.keys(joueurs).length ? `<div class="encart"><h4>Classement</h4><ol class="classement">
-          ${top(5).map((j) => `<li><span>${esc(j.nom)}</span><b>${j.score || 0}</b></li>`).join("")}</ol></div>` : ""}
-      </div>
-    </div>`);
-  publier({ choix: d.choix });
-  sauver();
-}
-
 function ecranFin() {
   S.phase = "fin";
   const nbTop = S.historique.filter((h) => h && h.qualite === "top").length;
   const v = verdict(S.jauges, nbTop, SCENES.length);
   btnSuivant("Nouvelle partie ↺");
-  const podium = S.enLigne ? top(5) : [];
+  const podium = S.enLigne ? top(3) : [];
   const medailles = ["🥇", "🥈", "🥉", "4", "5"];
   rendre(`<div class="fin">
     <div class="verdict">
       <div class="emoji">${v.emoji}</div>
       <h1>${v.titre}</h1>
-      <p>${v.texte}</p>
-      <div class="stats-fin"><span class="pastille">✅ <b>${nbTop} / ${SCENES.length}</b> stratégies de survie appliquées</span></div>
+      <p>${v.texte} <b>${nbTop} / ${SCENES.length}</b> bonnes réponses.</p>
       <div class="historique">${S.historique.map((h, i) => `<span title="${esc(SCENES[i].titre)}" style="background:var(--${h.qualite === "top" ? "bon" : h.qualite === "moyen" ? "moyen" : "mal"})">${LETTRES[h.choix]}</span>`).join("")}</div>
     </div>
     <div class="podium">
       ${podium.length ? `<div class="surtitre">Meilleurs chefs d'équipe virtuelle</div>
         ${podium.map((j, i) => `<div class="ligne" style="animation-delay:${0.3 + (podium.length - i) * 0.35}s"><span class="rang">${medailles[i]}</span><span>${esc(j.nom)}</span><span class="pts">${j.score || 0}</span></div>`).join("")}`
-      : `<div class="surtitre">À retenir</div><div class="encart" style="font-size:1.2em;line-height:1.5">Les paradoxes ne se « résolvent » pas : on les gère. Le bon chef d'équipe virtuelle combine les deux côtés au lieu d'en choisir un.</div>`}
+      : `<div class="encart" style="font-size:1.4em;line-height:1.4">Les paradoxes ne se résolvent pas : ils se gèrent.</div>`}
     </div>
-    <div class="recap">${RECAP.map((r) => `<div><i>P${r.n}</i><b>${r.titre}</b><span>${r.strat}</span></div>`).join("")}</div>
   </div>`);
   publier();
   effacerSauvegarde();
@@ -435,7 +410,7 @@ function suivant() {
     case "accueil": return ecranIntro();
     case "intro": return ecranVote(0);
     case "vote": return S.enLigne && !attenteMain ? reveler() : null;
-    case "resultat": return ecranDecryptage();
+    case "resultat":
     case "decryptage": return S.idx + 1 < SCENES.length ? ecranVote(S.idx + 1) : ecranFin();
     case "fin": effacerSauvegarde(); return location.reload();
   }
@@ -497,7 +472,7 @@ async function reprendre(sauv) {
   if (S.phase === "intro") ecranIntro();
   else if (S.phase === "vote") ecranVote(S.idx);
   else if (S.phase === "resultat") { ecranResultat(false); publier({ choix: S.dernier.choix }); }
-  else if (S.phase === "decryptage") ecranDecryptage();
+  else if (S.phase === "decryptage") { S.phase = "resultat"; ecranResultat(false); }
   else ecranAccueil();
 }
 
