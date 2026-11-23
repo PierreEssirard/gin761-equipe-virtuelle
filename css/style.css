@@ -466,4 +466,4 @@ body.mode-uc { background: radial-gradient(ellipse at top, #1b0d2e 0%, #000 65%)
 .options .option > .lettre { position: relative; z-index: 1; }
 .live-tag { float: right; color: var(--mal); font-weight: 700; font-size: 0.85em; animation: respire 1.2s ease-in-out infinite; }
 .minuteur .nb { font-size: 1.7em; }
-.option:has(.live-pct) { padding-right: 5.2em; }
+.option:has(.live-pct) { padding-right: 6.6em; }
