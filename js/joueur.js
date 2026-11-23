@@ -1,8 +1,8 @@
 /* =========================================================
    PAGE JOUEUR — ouverte sur les téléphones via le QR code
    ========================================================= */
-import { SCENES, LETTRES, POINTS } from "./scenarios.js?v=9";
-import { connecter, configPrete } from "./reseau.js?v=9";
+import { SCENES, LETTRES, POINTS } from "./scenarios.js?v=10";
+import { connecter, configPrete } from "./reseau.js?v=10";
 
 const $ = (s) => document.querySelector(s);
 const ecran = $("#ecran");
@@ -32,7 +32,7 @@ function ecranCode(erreur = "") {
     <button class="btn" id="ok">Continuer</button>`, "code");
   const go = () => {
     const c = $("#code").value.trim();
-    if (/^\d{4}$/.test(c)) location.search = "?salle=" + c + "&v=9";
+    if (/^\d{4}$/.test(c)) location.search = "?salle=" + c + "&v=10";
   };
   $("#ok").onclick = go;
   $("#code").onkeydown = (e) => { if (e.key === "Enter") go(); };

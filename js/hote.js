@@ -1,9 +1,9 @@
 /* =========================================================
    ÉCRAN HÔTE — à projeter devant la classe
    ========================================================= */
-import { JAUGES, DEPART, POINTS, LETTRES, INTRO, SCENES, verdict } from "./scenarios.js?v=9";
-import { connecter, configPrete } from "./reseau.js?v=9";
-import { DUREE_VOTE } from "./config.js?v=9";
+import { JAUGES, DEPART, POINTS, LETTRES, INTRO, SCENES, verdict } from "./scenarios.js?v=10";
+import { connecter, configPrete } from "./reseau.js?v=10";
+import { DUREE_VOTE } from "./config.js?v=10";
 
 const params = new URLSearchParams(location.search);
 const DUREE = Number(params.get("duree")) || DUREE_VOTE;
@@ -114,7 +114,7 @@ function publier(extra = {}) {
   net.set(net.r(`salles/${S.code}/etat`), { phase: S.phase, scene: S.idx, fin: finVote || 0, ...extra });
 }
 function urlJoueur() {
-  return new URL(`jouer.html?salle=${S.code}&v=9`, location.href).href;
+  return new URL(`jouer.html?salle=${S.code}&v=10`, location.href).href;
 }
 
 /* ---------- Écrans ---------- */

@@ -30,6 +30,6 @@ Le mode **Jouer sans téléphones** fonctionne même sans Firebase.
 
 ## Déroulement (environ 6 à 8 minutes)
 
-Introduction, puis 5 questions (une par paradoxe). Chaque question a un écran de vote et un écran de résultat (conséquence, jauges et phrase à retenir). Le jeu se termine par un verdict et un podium.
+Introduction, puis 6 questions directes sur la présentation (une par paradoxe, plus une sur la conclusion). Chaque question a un écran de vote et un écran de résultat (conséquence, jauges et phrase à retenir). Le jeu se termine par un verdict et un podium.
 
 Le contenu est modifiable dans `js/scenarios.js`.
