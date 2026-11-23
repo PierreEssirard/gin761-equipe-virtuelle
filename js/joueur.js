@@ -1,8 +1,8 @@
 /* =========================================================
    PAGE JOUEUR — ouverte sur les téléphones via le QR code
    ========================================================= */
-import { SCENES, LETTRES, estDouble } from "./scenarios.js?v=12";
-import { connecter, configPrete } from "./reseau.js?v=12";
+import { SCENES, LETTRES, estDouble } from "./scenarios.js?v=13";
+import { connecter, configPrete } from "./reseau.js?v=13";
 
 const $ = (s) => document.querySelector(s);
 const ecran = $("#ecran");
@@ -11,6 +11,7 @@ const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&l
 let net, code, pid, moi = null, etat = null;
 let rendu = ""; // clé du dernier écran affiché
 let mesVotes = {};
+let mesVotesUC = {};
 let minuterie = null;
 let suspenseJusqua = 0; // pendant le suspense, on ne révèle pas les points
 let suspenseCle = "";
@@ -34,7 +35,7 @@ function ecranCode(erreur = "") {
     <button class="btn" id="ok">Continuer</button>`, "code");
   const go = () => {
     const c = $("#code").value.trim();
-    if (/^\d{4}$/.test(c)) location.search = "?salle=" + c + "&v=12";
+    if (/^\d{4}$/.test(c)) location.search = "?salle=" + c + "&v=13";
   };
   $("#ok").onclick = go;
   $("#code").onkeydown = (e) => { if (e.key === "Enter") go(); };
@@ -108,6 +109,11 @@ function afficher(majScore) {
   if (p === "vote") return vote(etat.scene);
   if (p === "resultat" || p === "decryptage") return resultat(etat.scene, etat.choix);
   document.body.classList.toggle("mode-crise", (p === "crise" || p === "vote") && !!(SCENES[etat.scene] && SCENES[etat.scene].crise));
+  const sceneUC = !!(SCENES[etat.scene] && SCENES[etat.scene].undercover);
+  document.body.classList.toggle("mode-uc", sceneUC && ["mission", "vote", "demasquage", "verdict-uc"].includes(p));
+  if (p === "mission") return mission(etat.scene);
+  if (p === "demasquage") return demasquage(etat.scene);
+  if (p === "verdict-uc") return verdictUC(etat.scene);
   if (p === "crise") return crise(etat.scene);
   if (p === "classement") return classement();
   if (p === "fin") return fin();
@@ -127,12 +133,14 @@ function vote(idx) {
   rendre(`<div class="j-scene-info">Question ${idx + 1} / ${SCENES.length} · ${sc.titre}</div>
     ${double ? `<div class="j-double">×2 · Points doublés !</div>` : ""}
     ${enCrise ? `<div class="j-crise">🚨 Crise : ${sc.crise.duree} s pour réagir !</div>` : ""}
+    ${sc.undercover && suisUC(idx) ? `<div class="j-uc-rappel">🕵️ Mission : fais voter <b>${LETTRES[sc.undercover.cible]} · ${sc.choix[sc.undercover.cible].court}</b></div>` : ""}
+    ${sc.undercover && !suisUC(idx) ? `<div class="j-uc-rappel loyal">🗣️ Débat ouvert · méfie-toi des beaux parleurs</div>` : ""}
     <div class="j-question">${sc.situation}</div>
     <div class="j-barre-temps"><div id="temps" style="width:100%"></div></div>
     <div class="j-choix ${deja !== undefined ? "a-vote" : ""}" id="choix">
       ${sc.choix.map((c, i) => `<button class="j-btn ${deja === i ? "choisi" : ""}" data-i="${i}"><span class="lettre">${LETTRES[i]}</span><span>${c.texte}</span></button>`).join("")}
     </div>
-    <p class="j-note" id="note">${deja !== undefined ? "Vote enregistré ✓ Tu peux encore changer d'avis." : "Vite ! Plus tu réponds tôt, plus tu gagnes de points ⚡"}</p>`, `vote-${idx}`);
+    <p class="j-note" id="note">${deja !== undefined ? "Vote enregistré ✓ Tu peux encore changer d'avis." : (sc.undercover ? "Prends le temps d'écouter le débat : pas de bonus de rapidité ici." : "Vite ! Plus tu réponds tôt, plus tu gagnes de points ⚡")}</p>`, `vote-${idx}`);
   document.querySelectorAll(".j-btn").forEach((b) => {
     b.onclick = () => {
       if (net.maintenant() > etat.fin) return;
@@ -202,6 +210,78 @@ function resultat(idx, choixClasse) {
     const pas = (t) => { const k = Math.min(1, (t - t0) / 900); pe.textContent = "+" + Math.round(cible * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(pas); };
     requestAnimationFrame(pas);
   }
+}
+
+const suisUC = (idx) => !!(moi && moi.mission && moi.mission.scene === idx);
+
+function mission(idx) {
+  const sc = SCENES[idx];
+  if (suisUC(idx)) {
+    const c = sc.undercover.cible;
+    rendre(`<div class="j-grand-emoji">🕵️</div>
+      <div class="j-titre j-centre j-uc-titre">Tu es UNDERCOVER</div>
+      <div class="j-carte j-uc-carte">Ta mission : faire voter la classe pour<br><b class="j-uc-cible">${LETTRES[c]} · ${sc.choix[c].court}</b></div>
+      <p class="j-texte j-centre">Pendant le débat, sois convaincant… et discret. Si la classe vote cette réponse : <b>+1500 pts</b>. Si personne ne te démasque : <b>+1000 pts</b>.</p>
+      <p class="j-note">🤫 Ne montre ton écran à personne !</p>`, `mission-${idx}`);
+    navigator.vibrate?.([80, 80, 80]);
+  } else {
+    rendre(`<div class="j-grand-emoji">🛡️</div>
+      <div class="j-titre j-centre">Tu es un agent loyal</div>
+      <p class="j-texte j-centre">Des undercovers vont essayer de faire voter la classe pour une mauvaise réponse. Écoute bien le débat… et méfie-toi des beaux parleurs.</p>
+      <p class="j-note">🔎 Ensuite, tu voteras pour les démasquer (+500 pts).</p>`, `mission-${idx}`);
+  }
+}
+
+function demasquage(idx) {
+  const noms = etat.suspects || [];
+  const deja = mesVotesUC[idx];
+  rendre(`<div class="j-scene-info">Démasquage</div>
+    <div class="j-question">🔎 Qui est undercover ?</div>
+    <div class="j-barre-temps"><div id="temps" style="width:100%"></div></div>
+    <div class="j-choix ${deja !== undefined ? "a-vote" : ""}" id="choix">
+      ${noms.map((n, i) => `<button class="j-btn ${deja === i ? "choisi" : ""}" data-i="${i}"><span class="lettre">${LETTRES[i]}</span><span>${esc(n)}${n === moi.nom ? " (toi)" : ""}</span></button>`).join("")}
+    </div>
+    <p class="j-note" id="note">${suisUC(idx) ? "🤫 Accuse quelqu'un d'autre pour brouiller les pistes !" : "Vise juste : +500 pts si c'est un undercover."}</p>`, `demasquage-${idx}`);
+  document.querySelectorAll(".j-btn").forEach((b) => {
+    b.onclick = () => {
+      if (net.maintenant() > etat.fin) return;
+      const i = +b.dataset.i;
+      mesVotesUC[idx] = i;
+      net.set(net.r(`salles/${code}/votes/u${idx}/${pid}`), i);
+      document.querySelectorAll(".j-btn").forEach((x) => x.classList.toggle("choisi", +x.dataset.i === i));
+      $("#choix").classList.add("a-vote");
+      navigator.vibrate?.(30);
+    };
+  });
+  const duree = Math.max(1, etat.fin - net.maintenant());
+  minuterie = setInterval(() => {
+    const reste = etat.fin - net.maintenant();
+    const t = $("#temps");
+    if (!t) return clearInterval(minuterie);
+    t.style.width = Math.max(0, (100 * reste) / duree) + "%";
+    if (reste <= 0) { clearInterval(minuterie); document.querySelectorAll(".j-btn").forEach((x) => (x.disabled = true)); }
+  }, 200);
+}
+
+function verdictUC(idx) {
+  const d = moi.dernierUC && moi.dernierUC.scene === idx ? moi.dernierUC : null;
+  if (!d) return rendre(`<div class="j-grand-emoji">⏳</div><p class="j-texte j-centre">Regarde l'écran…</p>`, `verdict-uc-${idx}-attente`);
+  let emoji, titre, texte;
+  if (d.role === "undercover") {
+    emoji = d.demasque ? "😱" : "😈";
+    titre = d.demasque ? "Démasqué !" : "Incognito !";
+    texte = `${d.reussi ? "Mission réussie : la classe a voté ta réponse piège. " : "La classe n'est pas tombée dans ton piège. "}${d.demasque ? "Mais la classe t'a repéré." : "Et personne ne t'a repéré."}`;
+  } else {
+    emoji = d.vise ? "🎯" : "🙈";
+    titre = d.vise ? "Bien vu !" : "Raté…";
+    texte = d.vise ? "Tu as désigné un undercover." : d.vise === false ? "Ton suspect était innocent." : "Tu n'as pas voté.";
+  }
+  rendre(`<div class="j-grand-emoji">${emoji}</div>
+    <div class="j-titre j-centre">${titre}</div>
+    <div class="j-points ${d.gain > 0 ? "top" : "mauvais"}">+${d.gain}</div>
+    <p class="j-texte j-centre">${texte}</p>
+    <div class="j-score"><span>Ton score</span><b>${moi.score || 0} pts</b></div>
+    <p class="j-note">Regarde l'écran 👀</p>`, `verdict-uc-${idx}`);
 }
 
 function crise(idx) {

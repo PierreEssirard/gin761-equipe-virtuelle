@@ -28,7 +28,7 @@ Le projet Firebase `gin761-jeu` est déjà configuré (Realtime Database en us-c
 
 Le mode **Jouer sans téléphones** fonctionne même sans Firebase.
 
-## Déroulement (environ 6 à 8 minutes)
+## Déroulement (environ 9 à 11 minutes)
 
 Introduction, puis 6 questions directes sur la présentation (une par paradoxe, plus une sur la conclusion). Chaque question a un écran de vote et un écran de résultat (conséquence, jauges et phrase à retenir). Le jeu se termine par un verdict et un podium.
 
@@ -40,6 +40,7 @@ Introduction, puis 6 questions directes sur la présentation (une par paradoxe, 
 - **Classement à mi-parcours** : top 5 après la question 3 ; chaque joueur voit son rang et l'écart avec la personne devant.
 - **Finale ×2** : la dernière question vaut double.
 - **Crise surprise** 🚨 : la question 4 n'est pas annoncée. Après le classement, l'écran passe au rouge (« ALERTE »), les téléphones vibrent, puis la classe n'a que 15 s pour réagir. Pour la configurer, ajoutez un champ `crise` à une scène dans `js/scenarios.js`.
+- **Manche Undercover** 🕵️ (question 5, paradoxe 5) : 1 à 3 joueurs tirés au sort reçoivent en secret la mission de faire voter la classe pour la réponse piège. 45 s de débat à voix haute (sans bonus de rapidité), vote, puis **démasquage** : 4 suspects à l'écran, la classe vote, les cartes se retournent. Points : +1500 par undercover si la classe tombe dans le piège, +1000 s'il n'est pas l'accusé, +500 pour chaque joueur loyal qui vise un undercover. Configurable via le champ `undercover` de la scène et `REGLES.undercover`. Il faut au moins 2 joueurs connectés ; en mode sans téléphones, la question se joue normalement.
 
 Tout se règle dans `js/scenarios.js` (`REGLES`, `calculerPoints`).
 
