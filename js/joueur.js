@@ -1,8 +1,8 @@
 /* =========================================================
    PAGE JOUEUR — ouverte sur les téléphones via le QR code
    ========================================================= */
-import { SCENES, LETTRES, POINTS } from "./scenarios.js?v=10";
-import { connecter, configPrete } from "./reseau.js?v=10";
+import { SCENES, LETTRES, estDouble } from "./scenarios.js?v=11";
+import { connecter, configPrete } from "./reseau.js?v=11";
 
 const $ = (s) => document.querySelector(s);
 const ecran = $("#ecran");
@@ -12,6 +12,8 @@ let net, code, pid, moi = null, etat = null;
 let rendu = ""; // clé du dernier écran affiché
 let mesVotes = {};
 let minuterie = null;
+let suspenseJusqua = 0; // pendant le suspense, on ne révèle pas les points
+let suspenseCle = "";
 
 function rendre(html, cle) {
   rendu = cle;
@@ -32,7 +34,7 @@ function ecranCode(erreur = "") {
     <button class="btn" id="ok">Continuer</button>`, "code");
   const go = () => {
     const c = $("#code").value.trim();
-    if (/^\d{4}$/.test(c)) location.search = "?salle=" + c + "&v=10";
+    if (/^\d{4}$/.test(c)) location.search = "?salle=" + c + "&v=11";
   };
   $("#ok").onclick = go;
   $("#code").onkeydown = (e) => { if (e.key === "Enter") go(); };
@@ -74,7 +76,8 @@ function ecouter() {
   net.onValue(net.r(`salles/${code}/joueurs/${pid}`), (s) => {
     moi = s.val();
     if (!moi) return;
-    $("#info-joueur").innerHTML = `${esc(moi.nom)} · <b>${moi.score || 0}</b> pts`;
+    // Pendant le vote et le suspense, le score reste caché (il trahirait la bonne réponse)
+    if (Date.now() >= suspenseJusqua && !(etat && etat.phase === "vote")) majEntete();
     afficher(true);
   });
   net.onValue(net.r(`salles/${code}/etat`), (s) => {
@@ -88,15 +91,23 @@ function ecouter() {
   }
 }
 
+function majEntete() {
+  if (!moi) return;
+  $("#info-joueur").innerHTML = `${(moi.serie || 0) >= 2 ? `<span class="j-feu">🔥 ${moi.serie}</span> ` : ""}${esc(moi.nom)} · <b>${moi.score || 0}</b> pts`;
+}
+
 function afficher(majScore) {
   if (!etat || !moi) return;
   const cle = `${etat.phase}-${etat.scene}`;
   if (cle === rendu && (!majScore || etat.phase === "vote" || etat.phase === "fin")) return;
+  if (cle === suspenseCle && Date.now() < suspenseJusqua) return;
   clearInterval(minuterie);
   const p = etat.phase;
+  if (p !== "resultat" && p !== "decryptage" && p !== "vote") majEntete();
   if (p === "accueil" || p === "intro") return attente();
   if (p === "vote") return vote(etat.scene);
   if (p === "resultat" || p === "decryptage") return resultat(etat.scene, etat.choix);
+  if (p === "classement") return classement();
   if (p === "fin") return fin();
 }
 
@@ -109,13 +120,15 @@ function attente() {
 function vote(idx) {
   const sc = SCENES[idx];
   const deja = mesVotes[idx];
+  const double = estDouble(idx, SCENES.length);
   rendre(`<div class="j-scene-info">Question ${idx + 1} / ${SCENES.length} · ${sc.titre}</div>
+    ${double ? `<div class="j-double">×2 · Points doublés !</div>` : ""}
     <div class="j-question">${sc.situation}</div>
     <div class="j-barre-temps"><div id="temps" style="width:100%"></div></div>
     <div class="j-choix ${deja !== undefined ? "a-vote" : ""}" id="choix">
       ${sc.choix.map((c, i) => `<button class="j-btn ${deja === i ? "choisi" : ""}" data-i="${i}"><span class="lettre">${LETTRES[i]}</span><span>${c.texte}</span></button>`).join("")}
     </div>
-    <p class="j-note" id="note">${deja !== undefined ? "Vote enregistré ✓ Tu peux encore changer d'avis." : "Choisis une option !"}</p>`, `vote-${idx}`);
+    <p class="j-note" id="note">${deja !== undefined ? "Vote enregistré ✓ Tu peux encore changer d'avis." : "Vite ! Plus tu réponds tôt, plus tu gagnes de points ⚡"}</p>`, `vote-${idx}`);
   document.querySelectorAll(".j-btn").forEach((b) => {
     b.onclick = () => {
       if (net.maintenant() > etat.fin) return;
@@ -124,7 +137,7 @@ function vote(idx) {
       net.set(net.r(`salles/${code}/votes/s${idx}/${pid}`), i);
       document.querySelectorAll(".j-btn").forEach((x) => x.classList.toggle("choisi", +x.dataset.i === i));
       $("#choix").classList.add("a-vote");
-      $("#note").textContent = "Vote enregistré ✓ Tu peux encore changer d'avis.";
+      $("#note").textContent = "Vote enregistré ✓ (changer d'avis remet ton chrono à zéro)";
       navigator.vibrate?.(30);
     };
   });
@@ -143,29 +156,62 @@ function vote(idx) {
 }
 
 function resultat(idx, choixClasse) {
+  const cle = `${etat.phase}-${idx}`;
+  // Premier affichage : suspense le temps que les barres montent à l'écran
+  if (rendu !== cle && suspenseCle !== cle) {
+    suspenseCle = cle;
+    suspenseJusqua = Date.now() + 3600;
+    rendre(`<div class="j-grand-emoji j-tambour">🥁</div>
+      <div class="j-titre j-centre">Suspense…</div>
+      <p class="j-texte j-centre">Regarde l'écran : les votes s'affichent !</p>`, "suspense-" + idx);
+    setTimeout(() => { if (etat && etat.phase === "resultat" && etat.scene === idx) resultat(idx, etat.choix); }, 3650);
+    return;
+  }
+  majEntete();
   const sc = SCENES[idx];
   const d = moi.dernier && moi.dernier.scene === idx ? moi.dernier : null;
   const monChoix = d ? d.choix : mesVotes[idx] ?? -1;
-  const pts = d ? d.pts : null;
   const q = monChoix >= 0 ? sc.choix[monChoix].qualite : "mauvais";
+  const bonne = sc.choix.findIndex((c) => c.qualite === "top");
   const message = monChoix < 0 ? "Tu n'as pas voté cette fois-ci."
-    : q === "top" ? "C'était la stratégie de survie du texte !"
+    : q === "top" ? "Bonne réponse ! C'était la stratégie du texte."
     : q === "moyen" ? "Pas mal… mais il y avait mieux."
     : "Aïe, le texte n'est pas d'accord !";
-  const montrer = etat.phase === "decryptage" || pts !== null;
+  const details = d && d.pts > 0 ? [
+    `<span>✔️ Réponse : ${d.base} pts${d.base < (q === "top" ? 1000 : 500) ? " ⚡" : ""}</span>`,
+    d.bonus ? `<span>🔥 Série de ${d.serie} : +${d.bonus}</span>` : "",
+    d.double ? `<span>×2 Question finale</span>` : "",
+  ].join("") : "";
   rendre(`<div class="j-scene-info">Question ${idx + 1} / ${SCENES.length}</div>
-    <div class="j-carte">La classe a choisi <b>${LETTRES[choixClasse]} · ${sc.choix[choixClasse].court}</b><br>
+    ${d ? `<div class="j-points ${q}">+${d.pts}</div>` : `<div class="j-points mauvais">…</div>`}
+    <p class="j-texte j-centre">${message}</p>
+    ${details ? `<div class="j-details">${details}</div>` : ""}
+    ${d && d.serie >= 2 ? `<div class="j-serie">🔥 ${d.serie} bonnes réponses d'affilée !</div>` : ""}
+    <div class="j-carte">Bonne réponse : <b>${LETTRES[bonne]} · ${sc.choix[bonne].court}</b><br>
     Ton choix : <b>${monChoix >= 0 ? `${LETTRES[monChoix]} · ${sc.choix[monChoix].court}` : "aucun"}</b></div>
-    ${montrer ? `<div class="j-points ${q}">+${pts ?? POINTS[q]}</div><p class="j-texte j-centre">${message}</p>` : ""}
     <div class="j-score"><span>Ton score</span><b>${moi.score || 0} pts</b></div>
-    <p class="j-note">Regarde l'écran pour la suite 👀</p>`, `${etat.phase}-${idx}`);
+    <p class="j-note">Regarde l'écran pour la suite 👀</p>`, cle);
   const pe = document.querySelector(".j-points");
-  if (pe) {
-    const cible = pts ?? POINTS[q];
+  if (pe && d) {
+    const cible = d.pts;
     const t0 = performance.now();
     const pas = (t) => { const k = Math.min(1, (t - t0) / 900); pe.textContent = "+" + Math.round(cible * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(pas); };
     requestAnimationFrame(pas);
   }
+}
+
+async function classement() {
+  const cle = `${etat.phase}-${etat.scene}`;
+  const snap = await net.get(net.r(`salles/${code}/joueurs`));
+  const tous = Object.entries(snap.val() || {}).sort((a, b) => (b[1].score || 0) - (a[1].score || 0));
+  const rang = tous.findIndex(([k]) => k === pid) + 1;
+  const devant = rang > 1 ? (tous[rang - 2][1].score || 0) - (moi.score || 0) : 0;
+  rendre(`<div class="j-scene-info">Classement à mi-parcours</div>
+    <div class="j-grand-emoji">${rang === 1 ? "👑" : rang <= 5 ? "🚀" : "💪"}</div>
+    <div class="j-titre j-centre">${rang}<sup>${rang === 1 ? "er" : "e"}</sup> sur ${tous.length}</div>
+    <p class="j-texte j-centre">${rang === 1 ? "Tu es en tête ! Ne lâche rien." : `Plus que <b>${devant} pts</b> pour dépasser la personne devant toi.`}</p>
+    <div class="j-score"><span>Ton score</span><b>${moi.score || 0} pts</b></div>
+    <p class="j-note">La dernière question vaut double : tout peut encore changer !</p>`, cle);
 }
 
 async function fin() {

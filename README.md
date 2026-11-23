@@ -32,4 +32,14 @@ Le mode **Jouer sans téléphones** fonctionne même sans Firebase.
 
 Introduction, puis 6 questions directes sur la présentation (une par paradoxe, plus une sur la conclusion). Chaque question a un écran de vote et un écran de résultat (conséquence, jauges et phrase à retenir). Le jeu se termine par un verdict et un podium.
 
+### Ce qui garde la classe accrochée
+
+- **Rapidité** : une bonne réponse donnée tout de suite vaut 1000 points, à la dernière seconde 500 (moitié moins pour une réponse « moyenne »). Changer d'avis remet le chrono à zéro.
+- **Séries** 🔥 : +100, +200 puis +300 points pour 2, 3, 4+ bonnes réponses d'affilée ; la flamme s'affiche sur le téléphone.
+- **Suspense** : après le vote, les barres montent une par une avant que la bonne réponse s'allume (les téléphones attendent aussi).
+- **Classement à mi-parcours** : top 5 après la question 3 ; chaque joueur voit son rang et l'écart avec la personne devant.
+- **Finale ×2** : la dernière question vaut double.
+
+Tout se règle dans `js/scenarios.js` (`REGLES`, `calculerPoints`).
+
 Le contenu est modifiable dans `js/scenarios.js`.

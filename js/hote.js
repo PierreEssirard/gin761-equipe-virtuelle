@@ -1,9 +1,9 @@
 /* =========================================================
    ÉCRAN HÔTE — à projeter devant la classe
    ========================================================= */
-import { JAUGES, DEPART, POINTS, LETTRES, INTRO, SCENES, verdict } from "./scenarios.js?v=10";
-import { connecter, configPrete } from "./reseau.js?v=10";
-import { DUREE_VOTE } from "./config.js?v=10";
+import { JAUGES, DEPART, LETTRES, INTRO, SCENES, REGLES, verdict, calculerPoints, estDouble } from "./scenarios.js?v=11";
+import { connecter, configPrete } from "./reseau.js?v=11";
+import { DUREE_VOTE } from "./config.js?v=11";
 
 const params = new URLSearchParams(location.search);
 const DUREE = Number(params.get("duree")) || DUREE_VOTE;
@@ -23,9 +23,10 @@ let minuterie = null;
 let finVote = 0;
 let enRevelation = false;
 let attenteMain = false; // aucun vote reçu : l'hôte choisit à main levée
+let animJeton = 0; // annule les animations d'un écran quitté
 
 function nouvellePartie(enLigne = false) {
-  return { code: null, enLigne, phase: "accueil", idx: -1, jauges: { ...DEPART }, historique: [], dernier: null };
+  return { code: null, enLigne, phase: "accueil", idx: -1, jauges: { ...DEPART }, historique: [], dernier: null, tVotes: {} };
 }
 
 /* ---------- Sauvegarde locale (reprise si la page est rechargée) ---------- */
@@ -114,7 +115,7 @@ function publier(extra = {}) {
   net.set(net.r(`salles/${S.code}/etat`), { phase: S.phase, scene: S.idx, fin: finVote || 0, ...extra });
 }
 function urlJoueur() {
-  return new URL(`jouer.html?salle=${S.code}&v=10`, location.href).href;
+  return new URL(`jouer.html?salle=${S.code}&v=11`, location.href).href;
 }
 
 /* ---------- Écrans ---------- */
@@ -204,6 +205,7 @@ function ecranIntro() {
     <p class="texte-intro">${INTRO.texte}</p>
     <div class="villes">${INTRO.villes.map((v) => `<div class="ville"><b>${v.nom}</b><span>${v.detail}</span></div>`).join("")}</div>
     <div class="regle">${INTRO.regle}</div>
+    <div class="bonus-regles">${INTRO.bonus.map((b) => `<div class="bonus-r"><span class="ico">${b.ico}</span><div><b>${b.titre}</b><span>${b.texte}</span></div></div>`).join("")}</div>
   </div>`);
   publier();
   sauver();
@@ -213,7 +215,7 @@ function enteteScene(idx, avecMinuteur) {
   const sc = SCENES[idx];
   return `<div class="entete-scene"><div>
       <div class="etape">Question ${idx + 1} / ${SCENES.length}</div>
-      <h2 class="titre-scene">${sc.titre}</h2>
+      <h2 class="titre-scene">${sc.titre}${estDouble(idx, SCENES.length) ? ` <span class="badge-double">×2 points doublés</span>` : ""}</h2>
       <p class="situation">${sc.situation}</p></div>
     ${avecMinuteur ? `<div class="minuteur" id="minuteur"><svg viewBox="0 0 100 100"><circle class="fond-c" cx="50" cy="50" r="44"/>
       <circle class="avance" id="arc" cx="50" cy="50" r="44" stroke-dasharray="276.5" stroke-dashoffset="0"/></svg><div class="nb" id="sec">${DUREE}</div></div>` : ""}
@@ -221,6 +223,7 @@ function enteteScene(idx, avecMinuteur) {
 }
 
 function ecranVote(idx) {
+  ++animJeton;
   S.idx = idx;
   S.phase = "vote";
   votes = {};
@@ -243,12 +246,20 @@ function ecranVote(idx) {
     sauver();
     return;
   }
-  finVote = net.maintenant() + DUREE * 1000;
+  if (!(S.finVote && S.tVotes && S.tVotes.idx === idx && S.finVote > net.maintenant())) {
+    finVote = net.maintenant() + DUREE * 1000;
+    S.finVote = finVote;
+  } else finVote = S.finVote;
   publier();
   sauver();
   if (arretVotes) arretVotes();
+  S.tVotes = S.tVotes && S.tVotes.idx === idx ? S.tVotes : { idx, t: {} };
   arretVotes = net.onValue(net.r(`salles/${S.code}/votes/s${idx}`), (s) => {
-    votes = s.val() || {};
+    const nouveaux = s.val() || {};
+    const t = net.maintenant();
+    // Heure d'arrivée de chaque vote (un changement d'avis remet le chrono)
+    Object.entries(nouveaux).forEach(([pid, v]) => { if (votes[pid] !== v || !(pid in S.tVotes.t)) S.tVotes.t[pid] = t; });
+    votes = nouveaux;
     majStatutVote();
   });
   clearInterval(minuterie);
@@ -319,61 +330,133 @@ function reveler(force) {
 
   if (S.enLigne) {
     const maj = {};
+    const duree = DUREE * 1000;
+    const debut = (S.finVote || finVote || net.maintenant()) - duree;
+    const double = estDouble(S.idx, SCENES.length);
     Object.entries(joueurs).forEach(([pid, j]) => {
       const v = votes[pid];
-      const pts = v === undefined ? 0 : POINTS[sc.choix[v].qualite];
-      j.score = (j.score || 0) + pts;
+      const serieAvant = j.serie || 0;
+      let r = { base: 0, bonus: 0, serie: 0, total: 0 };
+      if (v !== undefined) {
+        const tv = S.tVotes && S.tVotes.t[pid];
+        const ecoule = tv ? tv - debut : duree / 2;
+        r = calculerPoints(sc.choix[v].qualite, ecoule, duree, serieAvant, double);
+      }
+      j.score = (j.score || 0) + r.total;
+      j.serie = r.serie;
       maj[`joueurs/${pid}/score`] = j.score;
-      maj[`joueurs/${pid}/dernier`] = { scene: S.idx, pts, choix: v === undefined ? -1 : v };
+      maj[`joueurs/${pid}/serie`] = r.serie;
+      maj[`joueurs/${pid}/dernier`] = { scene: S.idx, pts: r.total, base: r.base, bonus: r.bonus, serie: r.serie, double, choix: v === undefined ? -1 : v };
     });
-    net.update(net.r(`salles/${S.code}`), maj);
+    S.majScores = maj;
   }
+  S.finVote = 0;
   S.phase = "resultat";
   publier({ choix });
+  // Les scores partent après l'annonce du résultat : les téléphones sont déjà en mode suspense
+  if (S.majScores) { net.update(net.r(`salles/${S.code}`), S.majScores); S.majScores = null; }
   sauver();
   ecranResultat(true);
 }
 
-function miniOptions(sc, d, montrerQualite) {
+const ETIQUETTE = { top: "✓ Bonne réponse", moyen: "À moitié", mauvais: "Faux" };
+
+function miniOptions(sc, d, revele) {
   return `<div class="mini-options">${sc.choix.map((c, i) => {
     const pct = d.total ? Math.round((100 * d.comptes[i]) / d.total) : null;
-    return `<div class="option ${i === d.choix ? "gagnant" : "perdant"}" data-i="${i}">
-      ${montrerQualite ? `<span class="badge-q ${c.qualite}">${POINTS[c.qualite]} pts</span>` : ""}
+    const h = pct === null ? 0 : Math.max(4, pct);
+    return `<div class="option ${c.qualite === "top" ? "bonne" : ""} ${i === d.choix ? "choix-classe" : ""}" data-i="${i}">
+      <div class="barre-monte" style="height:${revele ? h : 0}%" data-h="${h}"></div>
+      <span class="badge-q ${c.qualite}">${ETIQUETTE[c.qualite]}</span>
       <div class="lettre">${LETTRES[i]}</div><div class="txt">${c.court}</div>
-      ${pct !== null ? `<div class="pct">${pct} %</div><div class="barre-vote" style="width:0" data-w="${pct}"></div>` : ""}
+      ${pct !== null ? `<div class="pct" data-pct="${pct}" data-n="${d.comptes[i]}">${revele ? `${pct} %` : "0 %"}</div>` : ""}
     </div>`;
   }).join("")}</div>`;
 }
 
 function ecranResultat(anime) {
+  const jeton = ++animJeton;
   const sc = SCENES[S.idx];
   const d = S.dernier;
   const opt = sc.choix[d.choix];
   const dc = sc.decryptage;
   const derniere = S.idx === SCENES.length - 1;
-  btnSuivant(derniere ? "Verdict final ▶" : "Question suivante ▶");
+  const classement = S.enLigne && REGLES.classementApres.includes(S.idx) && Object.keys(joueurs).length > 0;
+  btnSuivant(derniere ? "Verdict final ▶" : classement ? "Classement ▶" : "Question suivante ▶");
   const effets = JAUGES.filter((j) => opt.effets[j.id])
     .map((j) => { const v = opt.effets[j.id]; return `<span class="effet ${v > 0 ? "plus" : "moins"}">${j.icone} ${v > 0 ? "+" : ""}${v}</span>`; })
     .join("");
   const crises = JAUGES.filter((j) => S.jauges[j.id] <= 0 && d.avant[j.id] > 0);
+  const avecBarres = d.total > 0;
+  const suspense = anime && avecBarres;
   rendre(`<div class="etape">Question ${S.idx + 1} / ${SCENES.length}</div>
     <h2 class="titre-scene">${sc.titre}</h2>
-    <div class="resultat">
-      ${miniOptions(sc, d, true)}
-      <div class="duo">
-        <div class="consequence" style="--col: var(--${"abcd"[d.choix]})">
-          <div class="lettre">${LETTRES[d.choix]}</div>
-          <div><p>${opt.consequence}</p><div class="effets">${effets}</div></div>
-        </div>
-        <div class="livre">
-          <span class="tag-paradoxe">${dc.paradoxe} · ${dc.titre}</span>
-          <p class="retenir">${dc.retenir}</p>
+    <div class="resultat ${suspense ? "suspense" : "revele"}" id="res">
+      ${miniOptions(sc, d, !suspense)}
+      <div class="zone-bas">
+        <div class="annonce">🥁 Et la bonne réponse est…</div>
+        <div class="duo">
+          <div class="consequence" style="--col: var(--${"abcd"[d.choix]})">
+            <div class="lettre">${LETTRES[d.choix]}</div>
+            <div><h3>La classe a choisi ${LETTRES[d.choix]}${d.tirage ? " (égalité, tirage au sort)" : ""}</h3><p>${opt.consequence}</p><div class="effets">${effets}</div></div>
+          </div>
+          <div class="livre">
+            <span class="tag-paradoxe">${dc.paradoxe} · ${dc.titre}</span>
+            <p class="retenir">${dc.retenir}</p>
+          </div>
         </div>
       </div>
       ${crises.map((j) => `<div class="alerte-crise">Crise : la jauge ${j.nom} est tombée à zéro.</div>`).join("")}
     </div>`);
-  setTimeout(() => document.querySelectorAll(".barre-vote").forEach((b) => (b.style.width = b.dataset.w + "%")), 60);
-  if (anime) majJauges(d.avant); else majJauges();
+  if (!suspense) { if (anime) majJauges(d.avant); else majJauges(); return; }
+
+  // Suspense : les barres montent une par une, puis la bonne réponse est révélée
+  const opts = [...document.querySelectorAll("#res .mini-options .option")];
+  const PAS = 650;
+  opts.forEach((o, i) => setTimeout(() => {
+    if (jeton !== animJeton) return;
+    const barre = o.querySelector(".barre-monte");
+    barre.style.height = barre.dataset.h + "%";
+    o.classList.add("monte");
+    const p = o.querySelector(".pct");
+    if (p) compterPct(p, +p.dataset.pct);
+  }, 400 + i * PAS));
+  setTimeout(() => {
+    if (jeton !== animJeton) return;
+    $("#res").classList.replace("suspense", "revele");
+    majJauges(d.avant);
+  }, 400 + opts.length * PAS + 900);
+}
+
+function compterPct(el, cible) {
+  const t0 = performance.now();
+  const pas = (t) => {
+    const k = Math.min(1, (t - t0) / 700);
+    el.textContent = Math.round(cible * (1 - Math.pow(1 - k, 3))) + " %";
+    if (k < 1) requestAnimationFrame(pas);
+  };
+  requestAnimationFrame(pas);
+}
+
+function ecranClassement() {
+  ++animJeton;
+  S.phase = "classement";
+  btnSuivant("Question suivante ▶");
+  const tous = Object.values(joueurs).sort((a, b) => (b.score || 0) - (a.score || 0));
+  const t5 = tous.slice(0, 5);
+  const reste = SCENES.length - S.idx - 1;
+  const medailles = ["🥇", "🥈", "🥉", "4", "5"];
+  rendre(`<div class="cl">
+    <div class="surtitre">Classement à mi-parcours · ${S.idx + 1} question${S.idx ? "s" : ""} sur ${SCENES.length}</div>
+    <h2 class="titre-scene">Top ${t5.length}</h2>
+    <div class="cl-liste">${t5.map((j, i) => `<div class="cl-ligne" style="animation-delay:${0.25 + (t5.length - 1 - i) * 0.3}s">
+        <span class="rang">${medailles[i]}</span><span class="nom">${esc(j.nom)}</span>
+        <span class="feu">${(j.serie || 0) >= 2 ? `🔥 ${j.serie}` : ""}</span>
+        <span class="pts">${j.score || 0}</span></div>`).join("")}</div>
+    <p class="cl-note">Encore ${reste} question${reste > 1 ? "s" : ""}… et la dernière vaut <b>double</b>. Tout peut encore changer !</p>
+  </div>`);
+  publier();
+  sauver();
 }
 
 function top(n) {
@@ -381,6 +464,7 @@ function top(n) {
 }
 
 function ecranFin() {
+  ++animJeton;
   S.phase = "fin";
   const nbTop = S.historique.filter((h) => h && h.qualite === "top").length;
   const v = verdict(S.jauges, nbTop, SCENES.length);
@@ -411,7 +495,11 @@ function suivant() {
     case "intro": return ecranVote(0);
     case "vote": return S.enLigne && !attenteMain ? reveler() : null;
     case "resultat":
-    case "decryptage": return S.idx + 1 < SCENES.length ? ecranVote(S.idx + 1) : ecranFin();
+    case "decryptage":
+      if (S.idx + 1 >= SCENES.length) return ecranFin();
+      if (S.enLigne && REGLES.classementApres.includes(S.idx) && Object.keys(joueurs).length > 0) return ecranClassement();
+      return ecranVote(S.idx + 1);
+    case "classement": return ecranVote(S.idx + 1);
     case "fin": effacerSauvegarde(); return location.reload();
   }
 }
@@ -473,6 +561,7 @@ async function reprendre(sauv) {
   else if (S.phase === "vote") ecranVote(S.idx);
   else if (S.phase === "resultat") { ecranResultat(false); publier({ choix: S.dernier.choix }); }
   else if (S.phase === "decryptage") { S.phase = "resultat"; ecranResultat(false); }
+  else if (S.phase === "classement") ecranClassement();
   else ecranAccueil();
 }
 

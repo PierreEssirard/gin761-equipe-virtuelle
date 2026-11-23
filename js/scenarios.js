@@ -22,6 +22,35 @@ export const DEPART = { confiance: 50, lien: 50, coordination: 50, budget: 70 };
 
 export const POINTS = { top: 1000, moyen: 500, mauvais: 0 };
 
+/* Règles de score (style Kahoot)
+   - Rapidité : une bonne réponse donnée tout de suite vaut 1000 pts,
+     donnée à la dernière seconde 500 pts (moitié moins pour « moyen »).
+   - Série : bonus pour les bonnes réponses consécutives.
+   - Classement intermédiaire après les questions listées (index à partir de 0).
+   - Dernière question : points doublés. */
+export const REGLES = {
+  classementApres: [2],
+  dernierDouble: true,
+};
+
+export function bonusSerie(serie) {
+  return serie >= 2 ? Math.min(300, (serie - 1) * 100) : 0;
+}
+
+export function estDouble(idx, total) {
+  return REGLES.dernierDouble && idx === total - 1;
+}
+
+/* ecoule et duree en ms ; serieAvant = bonnes réponses consécutives avant cette question */
+export function calculerPoints(qualite, ecoule, duree, serieAvant, double) {
+  const k = 1 - 0.5 * Math.max(0, Math.min(1, ecoule / duree));
+  const base = Math.round(POINTS[qualite] * k);
+  const serie = qualite === "top" ? serieAvant + 1 : 0;
+  const bonus = qualite === "top" ? bonusSerie(serie) : 0;
+  const total = (base + bonus) * (double ? 2 : 1);
+  return { base, bonus, serie, total };
+}
+
 export const LETTRES = ["A", "B", "C", "D"];
 
 export const INTRO = {
@@ -33,6 +62,11 @@ export const INTRO = {
     { nom: "Paris", detail: "1 fournisseur · +6 h" },
   ],
   regle: "Votez sur votre téléphone : une seule réponse correspond au texte de Line Dubé.",
+  bonus: [
+    { ico: "⚡", titre: "Rapidité", texte: "Plus vous répondez vite, plus vous gagnez de points." },
+    { ico: "🔥", titre: "Séries", texte: "Enchaînez les bonnes réponses : jusqu'à +300 pts de bonus." },
+    { ico: "×2", titre: "Finale", texte: "La dernière question vaut double. Rien n'est joué !" },
+  ],
 };
 
 export const SCENES = [

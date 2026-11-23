@@ -355,3 +355,53 @@ button { font: inherit; color: inherit; cursor: pointer; border: 0; background: 
 }
 .mini-options .option { padding-top: 2.4em; }
 .mini-options .badge-q { top: 0.75em; right: auto; left: 1.1em; }
+
+/* =================== Interactivité : rapidité, séries, suspense, classement =================== */
+/* Intro : règles de bonus */
+.bonus-regles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1em; margin-top: 1.6em; }
+.bonus-r { display: flex; gap: 0.9em; align-items: center; background: var(--carte); border: 1px solid var(--ligne); border-radius: var(--rayon); padding: 1em 1.2em; animation: entree 0.7s var(--ease) both; }
+.bonus-r:nth-child(1) { animation-delay: 0.45s; }
+.bonus-r:nth-child(2) { animation-delay: 0.55s; }
+.bonus-r:nth-child(3) { animation-delay: 0.65s; }
+.bonus-r .ico { font-size: 1.7em; font-weight: 800; color: var(--moyen); min-width: 1.4em; text-align: center; }
+.bonus-r b { display: block; font-weight: 600; font-size: 1.1em; }
+.bonus-r span { color: var(--doux); font-size: 0.95em; line-height: 1.35; }
+
+/* Question à points doublés */
+.badge-double { display: inline-block; vertical-align: middle; font-size: 0.42em; font-weight: 700; letter-spacing: 0.02em; color: #000; background: var(--moyen); padding: 0.3em 0.8em; border-radius: 99px; margin-left: 0.5em; animation: pulse 1.4s var(--ease) infinite; }
+
+/* Résultat avec suspense */
+.mini-options .option { min-height: 8.5em; align-content: end; }
+.mini-options .option > .lettre, .mini-options .option > .txt, .mini-options .option > .pct { position: relative; z-index: 1; }
+.barre-monte { position: absolute; left: 0; right: 0; bottom: 0; height: 0; z-index: 0; background: color-mix(in srgb, var(--col) 30%, transparent); transition: height 0.9s var(--ease); }
+.mini-options .badge-q { opacity: 0; animation: none; transition: opacity 0.5s; }
+.resultat .zone-bas { display: grid; }
+.resultat .zone-bas > * { grid-area: 1 / 1; }
+.annonce { place-self: center; font-size: 2.1em; font-weight: 700; letter-spacing: -0.02em; transition: opacity 0.4s; animation: respire 1.2s ease-in-out infinite; }
+.resultat .duo { transition: opacity 0.6s var(--ease) 0.2s; }
+.resultat.suspense .duo, .resultat.suspense .alerte-crise { opacity: 0; visibility: hidden; }
+.resultat.suspense .consequence, .resultat.suspense .livre { animation: none; }
+.resultat.revele .annonce { opacity: 0; animation: none; pointer-events: none; }
+.resultat.revele .mini-options .badge-q { opacity: 1; }
+.resultat.revele .option.bonne { border-color: var(--bon); transform: scale(1.04); box-shadow: 0 0 0 2px var(--bon), 0 20px 60px rgba(48, 209, 88, 0.25); }
+.resultat.revele .option:not(.bonne) { opacity: 0.42; filter: saturate(0.45); }
+.resultat.revele .option.choix-classe:not(.bonne) { opacity: 0.7; }
+.option.monte .pct { animation: pop 0.5s var(--ease); }
+
+/* Classement à mi-parcours */
+.cl { max-width: 52em; width: 100%; margin: auto; }
+.cl-liste { display: flex; flex-direction: column; gap: 0.6em; margin-top: 1.2em; }
+.cl-ligne { display: grid; grid-template-columns: 2.4em 1fr auto 5em; align-items: center; gap: 0.9em; background: var(--carte); border: 1px solid var(--ligne); border-radius: 18px; padding: 0.75em 1.3em; font-size: 1.35em; font-weight: 500; animation: glisse 0.7s var(--ease) both; }
+.cl-ligne:first-child { font-size: 1.6em; border-color: rgba(255, 214, 10, 0.4); box-shadow: 0 10px 40px rgba(255, 214, 10, 0.1); }
+.cl-ligne .rang { text-align: center; font-weight: 700; color: var(--doux); }
+.cl-ligne .feu { color: var(--a); font-weight: 600; font-size: 0.85em; }
+.cl-ligne .pts { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+.cl-note { margin-top: 1.4em; font-size: 1.25em; color: var(--doux2); text-align: center; animation: fondu 0.8s 1.8s both; }
+.cl-note b { color: var(--moyen); }
+
+/* Téléphone */
+.j-double { align-self: center; font-weight: 800; color: #000; background: var(--moyen); padding: 6px 14px; border-radius: 99px; font-size: 15px; animation: pulse 1.4s var(--ease) infinite; }
+.j-feu { color: var(--a); font-weight: 700; }
+.j-tambour { animation: pop 0.6s var(--ease), flotte 0.6s ease-in-out infinite; }
+.j-details { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--doux2); font-size: 15px; }
+.j-serie { text-align: center; font-weight: 700; font-size: 18px; color: var(--a); background: rgba(255, 159, 10, 0.12); border: 1px solid rgba(255, 159, 10, 0.35); border-radius: 16px; padding: 10px; animation: pop 0.6s var(--ease) 0.4s both; }
