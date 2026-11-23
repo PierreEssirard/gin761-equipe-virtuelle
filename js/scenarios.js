@@ -166,7 +166,7 @@ export const SCENES = [
   {
     titre: "Relâcher le contrôle",
     // Manche « Undercover » : des joueurs secrets poussent la classe vers la réponse « cible »
-    undercover: { cible: 3, debat: 45, demasquage: 20 },
+    undercover: { cible: 3, debat: 180, demasquage: 45 },
     situation: "Selon Dubé, à quel moment le chef d'équipe peut-il relâcher les mécanismes de contrôle ?",
     choix: [
       { texte: "Dès que le membre a une bonne réputation dans l'organisation", court: "Bonne réputation",

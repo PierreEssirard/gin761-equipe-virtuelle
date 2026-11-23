@@ -460,3 +460,10 @@ body.mode-uc { background: radial-gradient(ellipse at top, #1b0d2e 0%, #000 65%)
 .j-uc-rappel { text-align: center; font-weight: 600; font-size: 14px; padding: 8px 12px; border-radius: 14px; background: rgba(191, 90, 242, 0.14); border: 1px solid rgba(191, 90, 242, 0.5); }
 .j-uc-rappel b { color: var(--c); }
 .j-uc-rappel.loyal { background: rgba(255, 255, 255, 0.06); border-color: var(--ligne); color: var(--doux2); }
+/* Votes en direct pendant le débat Undercover */
+.option .barre-live { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: color-mix(in srgb, var(--col) 20%, transparent); transition: width 0.7s var(--ease); z-index: 0; }
+.option .live-pct { position: absolute; right: 1em; top: 50%; transform: translateY(-50%); font-weight: 700; font-size: 1.5em; color: var(--col); font-variant-numeric: tabular-nums; z-index: 1; }
+.options .option > .lettre { position: relative; z-index: 1; }
+.live-tag { float: right; color: var(--mal); font-weight: 700; font-size: 0.85em; animation: respire 1.2s ease-in-out infinite; }
+.minuteur .nb { font-size: 1.7em; }
+.option:has(.live-pct) { padding-right: 5.2em; }

@@ -1,9 +1,9 @@
 /* =========================================================
    ÉCRAN HÔTE — à projeter devant la classe
    ========================================================= */
-import { JAUGES, DEPART, LETTRES, INTRO, SCENES, REGLES, verdict, calculerPoints, estDouble, nbUndercovers } from "./scenarios.js?v=13";
-import { connecter, configPrete } from "./reseau.js?v=13";
-import { DUREE_VOTE } from "./config.js?v=13";
+import { JAUGES, DEPART, LETTRES, INTRO, SCENES, REGLES, verdict, calculerPoints, estDouble, nbUndercovers } from "./scenarios.js?v=14";
+import { connecter, configPrete } from "./reseau.js?v=14";
+import { DUREE_VOTE } from "./config.js?v=14";
 
 const params = new URLSearchParams(location.search);
 const DUREE = Number(params.get("duree")) || DUREE_VOTE;
@@ -116,7 +116,7 @@ function publier(extra = {}) {
   net.set(net.r(`salles/${S.code}/etat`), { phase: S.phase, scene: S.idx, fin: finVote || 0, ...extra });
 }
 function urlJoueur() {
-  return new URL(`jouer.html?salle=${S.code}&v=13`, location.href).href;
+  return new URL(`jouer.html?salle=${S.code}&v=14`, location.href).href;
 }
 
 /* ---------- Écrans ---------- */
@@ -213,6 +213,7 @@ function ecranIntro() {
 }
 
 const dureeDe = (idx) => { const sc = SCENES[idx] || {}; return (sc.crise && sc.crise.duree) || (sc.undercover && S.enLigne && S.uc && S.uc.idx === idx && sc.undercover.debat) || DUREE; };
+const chrono = (sec) => (sec >= 60 ? `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}` : String(sec));
 const ucActif = (idx) => !!(SCENES[idx] && SCENES[idx].undercover && S.enLigne && S.uc && S.uc.idx === idx);
 
 function enteteScene(idx, avecMinuteur) {
@@ -222,7 +223,7 @@ function enteteScene(idx, avecMinuteur) {
       <h2 class="titre-scene">${sc.titre}${estDouble(idx, SCENES.length) ? ` <span class="badge-double">×2 points doublés</span>` : ""}</h2>
       <p class="situation">${sc.situation}</p></div>
     ${avecMinuteur ? `<div class="minuteur" id="minuteur"><svg viewBox="0 0 100 100"><circle class="fond-c" cx="50" cy="50" r="44"/>
-      <circle class="avance" id="arc" cx="50" cy="50" r="44" stroke-dasharray="276.5" stroke-dashoffset="0"/></svg><div class="nb" id="sec">${dureeDe(idx)}</div></div>` : ""}
+      <circle class="avance" id="arc" cx="50" cy="50" r="44" stroke-dasharray="276.5" stroke-dashoffset="0"/></svg><div class="nb" id="sec">${chrono(dureeDe(idx))}</div></div>` : ""}
   </div>`;
 }
 
@@ -267,7 +268,7 @@ function ecranMission(idx) {
     <div class="uc-titre">MISSION SECRÈTE</div>
     <p class="uc-texte">Regardez votre téléphone… <b>sans le montrer à personne.</b></p>
     <p class="uc-detail">${n} undercover${n > 1 ? "s se cachent" : " se cache"} parmi vous. ${n > 1 ? "Leur" : "Sa"} mission : vous faire voter la mauvaise réponse à la prochaine question.<br>Tous les autres : démasquez-${n > 1 ? "les" : "le"} !</p>
-    <div class="uc-regles"><span>🗣️ 45 s de débat à voix haute</span><span>🔎 Puis vote pour démasquer</span></div>
+    <div class="uc-regles"><span>🗣️ 3 min de débat à voix haute</span><span>🔎 Puis vote pour démasquer</span></div>
   </div>`);
   publier();
   sauver();
@@ -298,7 +299,7 @@ function ecranDemasquage() {
       <h2 class="titre-scene">🔎 Qui ${n > 1 ? `sont les ${n} undercovers` : "est l'undercover"} ?</h2>
       <p class="situation">Votez sur votre téléphone pour le suspect le plus louche. +${REGLES.undercover.demasque} pts si vous visez juste.</p></div>
     <div class="minuteur" id="minuteur"><svg viewBox="0 0 100 100"><circle class="fond-c" cx="50" cy="50" r="44"/>
-      <circle class="avance" id="arc" cx="50" cy="50" r="44" stroke-dasharray="276.5" stroke-dashoffset="0"/></svg><div class="nb" id="sec">${duree}</div></div>
+      <circle class="avance" id="arc" cx="50" cy="50" r="44" stroke-dasharray="276.5" stroke-dashoffset="0"/></svg><div class="nb" id="sec">${chrono(duree)}</div></div>
     </div>
     <div class="suspects">${noms.map((nom, i) => `<div class="suspect" data-i="${i}"><div class="lettre">${LETTRES[i]}</div><div class="avatar">👤</div><div class="nom">${esc(nom)}</div></div>`).join("")}</div>
     <div class="statut-vote"><span>🕵️ Qui a poussé la classe vers « ${esc(SCENES[idx].choix[SCENES[idx].undercover.cible].court)} » ?</span><span><b id="nb-votes">0</b> / <b id="nb-tot">${Object.keys(joueurs).length}</b> ont voté</span></div>`);
@@ -316,7 +317,7 @@ function ecranDemasquage() {
     const reste = Math.max(0, finVote - net.maintenant());
     const el = $("#sec");
     if (el) {
-      el.textContent = Math.ceil(reste / 1000);
+      el.textContent = chrono(Math.ceil(reste / 1000));
       $("#arc").style.strokeDashoffset = 276.5 * (1 - reste / (duree * 1000));
       $("#minuteur").classList.toggle("urgent", reste <= 5000);
     }
@@ -408,9 +409,10 @@ function ecranVote(idx) {
   rendre(`${enteteScene(idx, enLigne)}
     <div class="options" id="options">${sc.choix.map((c, i) => `
       <div class="option ${enLigne ? "" : "clic"}" data-i="${i}">
+        ${ucActif(idx) ? `<div class="barre-live"></div><div class="live-pct">0 %</div>` : ""}
         <div class="lettre">${LETTRES[i]}</div><div class="txt">${c.texte}</div>
       </div>`).join("")}</div>
-    ${ucActif(idx) ? `<div class="debat">🗣️ <b>Débat ouvert !</b> Défendez votre réponse à voix haute… mais attention : ${S.uc.ids.length} undercover${S.uc.ids.length > 1 ? "s se cachent" : " se cache"} parmi vous 🕵️</div>` : ""}
+    ${ucActif(idx) ? `<div class="debat">🗣️ <b>Débat ouvert : 3 minutes !</b> Défendez votre réponse à voix haute, vous pouvez changer de vote à tout moment… mais attention : ${S.uc.ids.length} undercover${S.uc.ids.length > 1 ? "s se cachent" : " se cache"} parmi vous 🕵️ <span class="live-tag">● Votes en direct</span></div>` : ""}
     <div class="statut-vote" id="statut">${enLigne
       ? `<span>📱 Votez sur votre téléphone !</span><span><b id="nb-votes">0</b> / <b id="nb-tot">${Object.keys(joueurs).length}</b> ont voté</span>`
       : `<span>✋ Votez à main levée, puis cliquez sur l'option majoritaire (ou touches <b>1</b> à <b>4</b>).</span>`}</div>`);
@@ -445,7 +447,7 @@ function tic() {
   const sec = Math.ceil(reste / 1000);
   const el = $("#sec");
   if (el) {
-    el.textContent = sec;
+    el.textContent = chrono(sec);
     $("#arc").style.strokeDashoffset = 276.5 * (1 - reste / (dureeDe(S.idx) * 1000));
     $("#minuteur").classList.toggle("urgent", sec <= 5);
   }
@@ -458,6 +460,18 @@ function majStatutVote() {
   const tot = Object.keys(joueurs).length;
   nv.textContent = n;
   $("#nb-tot").textContent = tot;
+  if (ucActif(S.idx)) {
+    // Votes en direct (anonymes) pour relancer le débat
+    const comptes = [0, 0, 0, 0];
+    Object.values(votes).forEach((v) => { if (v >= 0 && v <= 3) comptes[v]++; });
+    document.querySelectorAll("#options .option").forEach((o, i) => {
+      const pct = n ? Math.round((100 * comptes[i]) / n) : 0;
+      const b = o.querySelector(".barre-live");
+      if (b) b.style.width = pct + "%";
+      const p = o.querySelector(".live-pct");
+      if (p) p.textContent = pct + " %";
+    });
+  }
   if (n > 0 && n >= tot && !enRevelation && !attenteMain && !ucActif(S.idx)) {
     enRevelation = true;
     setTimeout(() => { enRevelation = false; reveler(); }, 900);

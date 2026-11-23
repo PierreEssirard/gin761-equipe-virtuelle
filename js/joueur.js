@@ -1,8 +1,8 @@
 /* =========================================================
    PAGE JOUEUR — ouverte sur les téléphones via le QR code
    ========================================================= */
-import { SCENES, LETTRES, estDouble } from "./scenarios.js?v=13";
-import { connecter, configPrete } from "./reseau.js?v=13";
+import { SCENES, LETTRES, estDouble } from "./scenarios.js?v=14";
+import { connecter, configPrete } from "./reseau.js?v=14";
 
 const $ = (s) => document.querySelector(s);
 const ecran = $("#ecran");
@@ -35,7 +35,7 @@ function ecranCode(erreur = "") {
     <button class="btn" id="ok">Continuer</button>`, "code");
   const go = () => {
     const c = $("#code").value.trim();
-    if (/^\d{4}$/.test(c)) location.search = "?salle=" + c + "&v=13";
+    if (/^\d{4}$/.test(c)) location.search = "?salle=" + c + "&v=14";
   };
   $("#ok").onclick = go;
   $("#code").onkeydown = (e) => { if (e.key === "Enter") go(); };
@@ -140,7 +140,7 @@ function vote(idx) {
     <div class="j-choix ${deja !== undefined ? "a-vote" : ""}" id="choix">
       ${sc.choix.map((c, i) => `<button class="j-btn ${deja === i ? "choisi" : ""}" data-i="${i}"><span class="lettre">${LETTRES[i]}</span><span>${c.texte}</span></button>`).join("")}
     </div>
-    <p class="j-note" id="note">${deja !== undefined ? "Vote enregistré ✓ Tu peux encore changer d'avis." : (sc.undercover ? "Prends le temps d'écouter le débat : pas de bonus de rapidité ici." : "Vite ! Plus tu réponds tôt, plus tu gagnes de points ⚡")}</p>`, `vote-${idx}`);
+    <p class="j-note" id="note">${deja !== undefined ? "Vote enregistré ✓ Tu peux encore changer d'avis." : (sc.undercover ? "3 min de débat : écoute, argumente, tu peux changer d'avis. Pas de bonus de rapidité ici." : "Vite ! Plus tu réponds tôt, plus tu gagnes de points ⚡")}</p>`, `vote-${idx}`);
   document.querySelectorAll(".j-btn").forEach((b) => {
     b.onclick = () => {
       if (net.maintenant() > etat.fin) return;
