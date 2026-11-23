@@ -1,8 +1,8 @@
 /* =========================================================
    PAGE JOUEUR — ouverte sur les téléphones via le QR code
    ========================================================= */
-import { SCENES, LETTRES, estDouble } from "./scenarios.js?v=11";
-import { connecter, configPrete } from "./reseau.js?v=11";
+import { SCENES, LETTRES, estDouble } from "./scenarios.js?v=12";
+import { connecter, configPrete } from "./reseau.js?v=12";
 
 const $ = (s) => document.querySelector(s);
 const ecran = $("#ecran");
@@ -34,7 +34,7 @@ function ecranCode(erreur = "") {
     <button class="btn" id="ok">Continuer</button>`, "code");
   const go = () => {
     const c = $("#code").value.trim();
-    if (/^\d{4}$/.test(c)) location.search = "?salle=" + c + "&v=11";
+    if (/^\d{4}$/.test(c)) location.search = "?salle=" + c + "&v=12";
   };
   $("#ok").onclick = go;
   $("#code").onkeydown = (e) => { if (e.key === "Enter") go(); };
@@ -107,6 +107,8 @@ function afficher(majScore) {
   if (p === "accueil" || p === "intro") return attente();
   if (p === "vote") return vote(etat.scene);
   if (p === "resultat" || p === "decryptage") return resultat(etat.scene, etat.choix);
+  document.body.classList.toggle("mode-crise", (p === "crise" || p === "vote") && !!(SCENES[etat.scene] && SCENES[etat.scene].crise));
+  if (p === "crise") return crise(etat.scene);
   if (p === "classement") return classement();
   if (p === "fin") return fin();
 }
@@ -121,8 +123,10 @@ function vote(idx) {
   const sc = SCENES[idx];
   const deja = mesVotes[idx];
   const double = estDouble(idx, SCENES.length);
+  const enCrise = !!sc.crise;
   rendre(`<div class="j-scene-info">Question ${idx + 1} / ${SCENES.length} · ${sc.titre}</div>
     ${double ? `<div class="j-double">×2 · Points doublés !</div>` : ""}
+    ${enCrise ? `<div class="j-crise">🚨 Crise : ${sc.crise.duree} s pour réagir !</div>` : ""}
     <div class="j-question">${sc.situation}</div>
     <div class="j-barre-temps"><div id="temps" style="width:100%"></div></div>
     <div class="j-choix ${deja !== undefined ? "a-vote" : ""}" id="choix">
@@ -198,6 +202,15 @@ function resultat(idx, choixClasse) {
     const pas = (t) => { const k = Math.min(1, (t - t0) / 900); pe.textContent = "+" + Math.round(cible * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(pas); };
     requestAnimationFrame(pas);
   }
+}
+
+function crise(idx) {
+  const c = SCENES[idx].crise;
+  rendre(`<div class="j-grand-emoji j-sirene">🚨</div>
+    <div class="j-titre j-centre">CRISE !</div>
+    <p class="j-texte j-centre"><b>${c.alerte}</b><br>${c.detail}</p>
+    <p class="j-note">Prépare-toi : ${c.duree} secondes pour réagir…</p>`, `crise-${idx}`);
+  navigator.vibrate?.([300, 120, 300, 120, 500]);
 }
 
 async function classement() {

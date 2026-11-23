@@ -39,6 +39,7 @@ Introduction, puis 6 questions directes sur la présentation (une par paradoxe, 
 - **Suspense** : après le vote, les barres montent une par une avant que la bonne réponse s'allume (les téléphones attendent aussi).
 - **Classement à mi-parcours** : top 5 après la question 3 ; chaque joueur voit son rang et l'écart avec la personne devant.
 - **Finale ×2** : la dernière question vaut double.
+- **Crise surprise** 🚨 : la question 4 n'est pas annoncée. Après le classement, l'écran passe au rouge (« ALERTE »), les téléphones vibrent, puis la classe n'a que 15 s pour réagir. Pour la configurer, ajoutez un champ `crise` à une scène dans `js/scenarios.js`.
 
 Tout se règle dans `js/scenarios.js` (`REGLES`, `calculerPoints`).
 

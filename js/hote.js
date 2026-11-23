@@ -1,9 +1,9 @@
 /* =========================================================
    ÉCRAN HÔTE — à projeter devant la classe
    ========================================================= */
-import { JAUGES, DEPART, LETTRES, INTRO, SCENES, REGLES, verdict, calculerPoints, estDouble } from "./scenarios.js?v=11";
-import { connecter, configPrete } from "./reseau.js?v=11";
-import { DUREE_VOTE } from "./config.js?v=11";
+import { JAUGES, DEPART, LETTRES, INTRO, SCENES, REGLES, verdict, calculerPoints, estDouble } from "./scenarios.js?v=12";
+import { connecter, configPrete } from "./reseau.js?v=12";
+import { DUREE_VOTE } from "./config.js?v=12";
 
 const params = new URLSearchParams(location.search);
 const DUREE = Number(params.get("duree")) || DUREE_VOTE;
@@ -115,7 +115,7 @@ function publier(extra = {}) {
   net.set(net.r(`salles/${S.code}/etat`), { phase: S.phase, scene: S.idx, fin: finVote || 0, ...extra });
 }
 function urlJoueur() {
-  return new URL(`jouer.html?salle=${S.code}&v=11`, location.href).href;
+  return new URL(`jouer.html?salle=${S.code}&v=12`, location.href).href;
 }
 
 /* ---------- Écrans ---------- */
@@ -211,19 +211,41 @@ function ecranIntro() {
   sauver();
 }
 
+const dureeDe = (idx) => (SCENES[idx] && SCENES[idx].crise && SCENES[idx].crise.duree) || DUREE;
+
 function enteteScene(idx, avecMinuteur) {
   const sc = SCENES[idx];
-  return `<div class="entete-scene"><div>
+  return `<div class="entete-scene ${sc.crise ? "entete-crise" : ""}"><div>
       <div class="etape">Question ${idx + 1} / ${SCENES.length}</div>
       <h2 class="titre-scene">${sc.titre}${estDouble(idx, SCENES.length) ? ` <span class="badge-double">×2 points doublés</span>` : ""}</h2>
       <p class="situation">${sc.situation}</p></div>
     ${avecMinuteur ? `<div class="minuteur" id="minuteur"><svg viewBox="0 0 100 100"><circle class="fond-c" cx="50" cy="50" r="44"/>
-      <circle class="avance" id="arc" cx="50" cy="50" r="44" stroke-dasharray="276.5" stroke-dashoffset="0"/></svg><div class="nb" id="sec">${DUREE}</div></div>` : ""}
+      <circle class="avance" id="arc" cx="50" cy="50" r="44" stroke-dasharray="276.5" stroke-dashoffset="0"/></svg><div class="nb" id="sec">${dureeDe(idx)}</div></div>` : ""}
   </div>`;
+}
+
+function ecranCrise(idx) {
+  ++animJeton;
+  S.idx = idx;
+  S.phase = "crise";
+  const c = SCENES[idx].crise;
+  document.body.classList.add("mode-crise");
+  btnSuivant("Réagir ! ▶");
+  rendre(`<div class="crise-alerte">
+    <div class="sirene">🚨</div>
+    <div class="crise-titre">ALERTE</div>
+    <p class="crise-texte">${c.alerte}</p>
+    <p class="crise-detail">${c.detail}</p>
+    <div class="crise-chrono">Vous aurez <b>${c.duree} secondes</b> pour réagir.</div>
+  </div>`);
+  publier();
+  sauver();
 }
 
 function ecranVote(idx) {
   ++animJeton;
+  if (SCENES[idx].crise && S.phase !== "crise" && !(S.phase === "vote" && S.idx === idx)) return ecranCrise(idx);
+  document.body.classList.toggle("mode-crise", !!SCENES[idx].crise);
   S.idx = idx;
   S.phase = "vote";
   votes = {};
@@ -247,7 +269,7 @@ function ecranVote(idx) {
     return;
   }
   if (!(S.finVote && S.tVotes && S.tVotes.idx === idx && S.finVote > net.maintenant())) {
-    finVote = net.maintenant() + DUREE * 1000;
+    finVote = net.maintenant() + dureeDe(idx) * 1000;
     S.finVote = finVote;
   } else finVote = S.finVote;
   publier();
@@ -272,7 +294,7 @@ function tic() {
   const el = $("#sec");
   if (el) {
     el.textContent = sec;
-    $("#arc").style.strokeDashoffset = 276.5 * (1 - reste / (DUREE * 1000));
+    $("#arc").style.strokeDashoffset = 276.5 * (1 - reste / (dureeDe(S.idx) * 1000));
     $("#minuteur").classList.toggle("urgent", sec <= 5);
   }
   if (reste <= 0) reveler();
@@ -330,7 +352,7 @@ function reveler(force) {
 
   if (S.enLigne) {
     const maj = {};
-    const duree = DUREE * 1000;
+    const duree = dureeDe(S.idx) * 1000;
     const debut = (S.finVote || finVote || net.maintenant()) - duree;
     const double = estDouble(S.idx, SCENES.length);
     Object.entries(joueurs).forEach(([pid, j]) => {
@@ -376,6 +398,7 @@ function miniOptions(sc, d, revele) {
 
 function ecranResultat(anime) {
   const jeton = ++animJeton;
+  document.body.classList.remove("mode-crise");
   const sc = SCENES[S.idx];
   const d = S.dernier;
   const opt = sc.choix[d.choix];
@@ -500,6 +523,7 @@ function suivant() {
       if (S.enLigne && REGLES.classementApres.includes(S.idx) && Object.keys(joueurs).length > 0) return ecranClassement();
       return ecranVote(S.idx + 1);
     case "classement": return ecranVote(S.idx + 1);
+    case "crise": return ecranVote(S.idx);
     case "fin": effacerSauvegarde(); return location.reload();
   }
 }
@@ -562,6 +586,7 @@ async function reprendre(sauv) {
   else if (S.phase === "resultat") { ecranResultat(false); publier({ choix: S.dernier.choix }); }
   else if (S.phase === "decryptage") { S.phase = "resultat"; ecranResultat(false); }
   else if (S.phase === "classement") ecranClassement();
+  else if (S.phase === "crise") ecranCrise(S.idx);
   else ecranAccueil();
 }
 
